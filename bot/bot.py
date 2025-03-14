@@ -3,7 +3,6 @@ import logging
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import BotCommand
 from bot.handlers import register_handlers
 
 class BotApp:
@@ -25,22 +24,9 @@ class BotApp:
         # Register handlers
         register_handlers(self.dp)
     
-    async def set_commands(self):
-        """Set bot commands that appear in the Telegram menu"""
-        commands = [
-            BotCommand(command="/start", description="Запустить бота"),
-            BotCommand(command="/help", description="Помощь"),
-            BotCommand(command="/today", description="Статистика за сегодня"),
-            BotCommand(command="/setlimit", description="Установить лимит калорий"),
-        ]
-        await self.bot.set_my_commands(commands)
-    
     async def main(self):
         """Main function to start the bot"""
         self.logger.info("Starting bot...")
-        
-        # Set commands
-        await self.set_commands()
         
         # Start polling (aiogram 3.x way)
         try:
