@@ -67,7 +67,13 @@ class DBUserData:
     @property
     def timezone(self) -> tzinfo:
         """Получить объект часового пояса пользователя"""
-        tz_name = AVAILABLE_TIMEZONES.get(self.timezone_code, "Europe/Moscow")
+        # Проверяем, есть ли код в словаре или используем Москву по умолчанию
+        tz_name = AVAILABLE_TIMEZONES.get(self.timezone_code)
+        if not tz_name:
+            tz_name = "Europe/Moscow"
+            logger.warning(f"Неизвестный код часового пояса: {self.timezone_code}, используем Europe/Moscow")
+        
+        # Возвращаем объект часового пояса
         return pytz.timezone(tz_name)
     
     def get_current_datetime(self) -> datetime:
@@ -104,7 +110,12 @@ class DBUserData:
     
     def get_timezone_name(self) -> str:
         """Получить название часового пояса"""
-        return AVAILABLE_TIMEZONES.get(self.timezone_code, "Europe/Moscow")
+        # Проверяем, есть ли код в словаре или используем Москву по умолчанию
+        tz_name = AVAILABLE_TIMEZONES.get(self.timezone_code)
+        if not tz_name:
+            tz_name = "Europe/Moscow"
+            logger.warning(f"Неизвестный код часового пояса при получении имени: {self.timezone_code}, используем Europe/Moscow")
+        return tz_name
     
     def get_timezone_offset(self) -> str:
         """Получить смещение часового пояса относительно UTC"""
