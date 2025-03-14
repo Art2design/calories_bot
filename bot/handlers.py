@@ -393,14 +393,24 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
 async def process_cancel(callback_query: CallbackQuery, state: FSMContext):
     """Cancel current operation"""
     await state.clear()
-    await callback_query.message.edit_text(
-        "❌ Операция отменена.",
-        reply_markup=None
-    )
-    await callback_query.message.answer(
-        "Выберите действие:",
-        reply_markup=get_main_menu_inline_keyboard()
-    )
+    
+    try:
+        # Пытаемся редактировать текущее сообщение
+        await callback_query.message.edit_text(
+            "❌ Операция отменена.",
+            reply_markup=None
+        )
+    except Exception as e:
+        logger.error(f"Error editing message: {e}")
+        # Если не удалось, отправляем новое
+        await callback_query.message.answer(
+            "❌ Операция отменена."
+        )
+    
+    # Отправляем меню с действиями
+    await show_main_menu(callback_query=callback_query)
+    
+    # Подтверждаем обработку callback
     await callback_query.answer()
 
 # Обработка ввода лимита калорий
@@ -722,7 +732,15 @@ async def set_selected_timezone(callback_query: CallbackQuery, state: FSMContext
 async def back_to_settings(callback_query: CallbackQuery, state: FSMContext):
     """Return from timezone selection to settings"""
     await state.clear()
-    await show_settings(callback_query=callback_query)
+    
+    try:
+        # Показываем меню настроек, редактируя текущее сообщение
+        await show_settings(callback_query=callback_query)
+    except Exception as e:
+        logger.error(f"Error editing message: {e}")
+        # Если не удается отредактировать, отправляем новое
+        await callback_query.message.answer("Возвращаемся в настройки...")
+        await show_settings(callback_query=callback_query)
 
 # Регистрация обработчиков
 def register_handlers(dp: Dispatcher):
