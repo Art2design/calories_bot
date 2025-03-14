@@ -90,7 +90,7 @@ async def cmd_help(message: Message):
 
 # Функции для отображения сводки питания
 async def show_stats(message: Message = None, callback_query: CallbackQuery = None, 
-                    current_date: date = None, edit_message: bool = False):
+                    current_date: Optional[date] = None, edit_message: bool = False):
     """Show nutrition stats for a specific date"""
     # Определяем либо из сообщения, либо из callback_query
     if callback_query:
@@ -166,7 +166,7 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
 
 # Функции для отображения списка приемов пищи
 async def show_meals(message: Message = None, callback_query: CallbackQuery = None, 
-                     current_date: date = None, page: int = 0, edit_message: bool = False):
+                     current_date: Optional[date] = None, page: int = 0, edit_message: bool = False):
     """Show meals list for a specific date"""
     # Определяем либо из сообщения, либо из callback_query
     if callback_query:

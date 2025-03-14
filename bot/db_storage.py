@@ -200,7 +200,9 @@ class DBUserData:
         """Получить статистику питания за конкретную дату"""
         # Формируем диапазон времени для выбранной даты (от 00:00 до 23:59:59)
         target_start = datetime.combine(target_date, datetime.min.time())
-        target_start = self.timezone.localize(target_start)
+        # Создаем осведомленную о часовом поясе дату
+        tz = self.timezone
+        target_start = tz.localize(target_start) if hasattr(tz, 'localize') else pytz.utc.localize(target_start).astimezone(tz)
         target_end = target_start + timedelta(days=1, seconds=-1)
         
         # Конвертируем в UTC для SQL-запроса
@@ -267,7 +269,9 @@ class DBUserData:
         """Получить приемы пищи за конкретную дату"""
         # Формируем диапазон времени для выбранной даты (от 00:00 до 23:59:59)
         target_start = datetime.combine(target_date, datetime.min.time())
-        target_start = self.timezone.localize(target_start)
+        # Создаем осведомленную о часовом поясе дату
+        tz = self.timezone
+        target_start = tz.localize(target_start) if hasattr(tz, 'localize') else pytz.utc.localize(target_start).astimezone(tz)
         target_end = target_start + timedelta(days=1, seconds=-1)
         
         # Конвертируем в UTC для SQL-запроса
