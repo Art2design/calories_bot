@@ -16,7 +16,7 @@ AVAILABLE_TIMEZONES = {
     "МСК": "Europe/Moscow",       # Москва UTC+3
     "UTC": "UTC",                 # Всемирное координированное время UTC+0
     "CET": "Europe/Paris",        # Центральноевропейское время UTC+1
-    "EET": "Europe/Kiev",         # Восточноевропейское время UTC+2
+    "EET": "Europe/Kyiv",         # Восточноевропейское время UTC+2
     "GMT": "Etc/GMT",             # Среднее время по Гринвичу UTC+0
     "EKAT": "Asia/Yekaterinburg", # Екатеринбург UTC+5
     "NOVS": "Asia/Novosibirsk",   # Новосибирск UTC+7
@@ -32,7 +32,7 @@ AVAILABLE_TIMEZONES = {
     "TBIL": "Asia/Tbilisi",       # Тбилиси UTC+4
     "YREV": "Asia/Yerevan",       # Ереван UTC+4
     "MINS": "Europe/Minsk",       # Минск UTC+3
-    "KIEV": "Europe/Kiev",        # Киев UTC+2
+    "KYIV": "Europe/Kyiv",        # Киев UTC+2
 }
 
 class DBUserData:
@@ -68,13 +68,22 @@ class DBUserData:
     def timezone(self) -> tzinfo:
         """Получить объект часового пояса пользователя"""
         # Проверяем, есть ли код в словаре или используем Москву по умолчанию
-        tz_name = AVAILABLE_TIMEZONES.get(self.timezone_code)
-        if not tz_name:
-            tz_name = "Europe/Moscow"
-            logger.warning(f"Неизвестный код часового пояса: {self.timezone_code}, используем Europe/Moscow")
-        
-        # Возвращаем объект часового пояса
-        return pytz.timezone(tz_name)
+        try:
+            tz_name = AVAILABLE_TIMEZONES.get(self.timezone_code)
+            if not tz_name:
+                tz_name = "Europe/Moscow"
+                logger.warning(f"Неизвестный код часового пояса: {self.timezone_code}, используем Europe/Moscow")
+                # Исправляем код часового пояса на правильный
+                self.timezone_code = "МСК"
+                # Сохраняем исправленный код в базу
+                self.set_timezone("МСК")
+            
+            # Возвращаем объект часового пояса
+            return pytz.timezone(tz_name)
+        except Exception as e:
+            logger.error(f"Ошибка при получении часового пояса: {e}")
+            # Если произошла ошибка, возвращаем часовой пояс Москвы
+            return pytz.timezone("Europe/Moscow")
     
     def get_current_datetime(self) -> datetime:
         """Получить текущее время в часовом поясе пользователя"""
@@ -111,11 +120,19 @@ class DBUserData:
     def get_timezone_name(self) -> str:
         """Получить название часового пояса"""
         # Проверяем, есть ли код в словаре или используем Москву по умолчанию
-        tz_name = AVAILABLE_TIMEZONES.get(self.timezone_code)
-        if not tz_name:
-            tz_name = "Europe/Moscow"
-            logger.warning(f"Неизвестный код часового пояса при получении имени: {self.timezone_code}, используем Europe/Moscow")
-        return tz_name
+        try:
+            tz_name = AVAILABLE_TIMEZONES.get(self.timezone_code)
+            if not tz_name:
+                tz_name = "Europe/Moscow"
+                logger.warning(f"Неизвестный код часового пояса при получении имени: {self.timezone_code}, используем Europe/Moscow")
+                # Исправляем код часового пояса на правильный
+                self.timezone_code = "МСК"
+                # Сохраняем исправленный код в базу
+                self.set_timezone("МСК")
+            return tz_name
+        except Exception as e:
+            logger.error(f"Ошибка при получении названия часового пояса: {e}")
+            return "Europe/Moscow"
     
     def get_timezone_offset(self) -> str:
         """Получить смещение часового пояса относительно UTC"""
