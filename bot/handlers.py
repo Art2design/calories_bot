@@ -497,9 +497,10 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
         # Отправляем сообщение с подтверждением
         await callback_query.message.edit_text(confirm_text, parse_mode="HTML")
         
-        # Отправляем меню с действиями
-        await callback_query.message.answer(
-            "Что хотите сделать дальше?",
+        # Обновляем текущее сообщение и добавляем меню с действиями
+        await callback_query.message.edit_text(
+            f"{confirm_text}\n\nЧто хотите сделать дальше?",
+            parse_mode="HTML",
             reply_markup=get_main_menu_inline_keyboard()
         )
     except Exception as e:
@@ -736,19 +737,14 @@ async def process_delete_meal(callback_query: CallbackQuery):
     success = user_data.delete_entry_by_index(meal_index)
     
     if success:
+        # Сообщаем об удалении и показываем меню
         await callback_query.message.edit_text(
-            f"✅ Прием пищи «{meal_name}» успешно удален.",
+            f"✅ Прием пищи «{meal_name}» успешно удален.\n\nОбновленный список приемов пищи:",
             parse_mode="HTML"
         )
         
-        # Показываем обновленный список приемов пищи
-        await callback_query.message.answer(
-            "Обновленный список приемов пищи:",
-            reply_markup=get_main_menu_inline_keyboard()
-        )
-        
-        # Возвращаем пользователя к списку приемов пищи
-        await show_meals(callback_query=callback_query)
+        # Возвращаем пользователя к списку приемов пищи с редактированием текущего сообщения
+        await show_meals(callback_query=callback_query, edit_message=True)
     else:
         await callback_query.answer("Не удалось удалить прием пищи")
 
