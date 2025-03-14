@@ -1,0 +1,63 @@
+/* Custom styles for the bot landing page */
+body {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+.btn-telegram {
+    background-color: #0088cc;
+    border-color: #0088cc;
+    color: white;
+}
+
+.btn-telegram:hover {
+    background-color: #006699;
+    border-color: #006699;
+    color: white;
+}
+
+/* Custom animation for the icon */
+.fa-utensils {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Custom card styling */
+.card {
+    transition: transform 0.3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Telegram button styling */
+.btn-primary {
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+}
+
+/* Custom font sizes for mobile responsiveness */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    .lead {
+        font-size: 1.1rem;
+    }
+}
