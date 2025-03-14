@@ -34,7 +34,11 @@ def start_bot_process():
     
     # Убиваем существующие процессы бота перед запуском нового
     try:
-        subprocess.run("pkill -f 'python run_bot.py'", shell=True)
+        # Используем SIGKILL для гарантированного завершения процессов
+        subprocess.run("pkill -9 -f 'python run_bot.py'", shell=True)
+        # Ждем немного, чтобы процессы завершились
+        import time
+        time.sleep(1)
     except Exception:
         pass
     
