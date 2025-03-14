@@ -17,6 +17,7 @@ from bot.keyboards import (
     get_meals_keyboard,
     get_meal_detail_keyboard,
     get_settings_keyboard,
+    get_timezone_keyboard,
     get_main_menu_inline_keyboard
 )
 from bot.storage import UserData, user_data_storage
@@ -160,11 +161,14 @@ async def show_meals(message: Message = None, callback_query: CallbackQuery = No
         user_id = message.from_user.id
         msg_obj = message
     
-    # Если дата не указана, используем сегодня
+    # Если дата не указана, используем сегодня в часовом поясе пользователя
     if current_date is None:
-        current_date = date.today()
+        user_data = get_user_data(user_id)
+        current_date = user_data.get_current_date()
+    else:
+        user_data = get_user_data(user_id)
     
-    user_data = get_user_data(user_id)
+    # Получаем приемы пищи за указанную дату
     meals = user_data.get_entries_by_date(current_date)
     
     # Если нет записей за эту дату
@@ -183,14 +187,26 @@ async def show_meals(message: Message = None, callback_query: CallbackQuery = No
         # Создаем клавиатуру со списком приемов пищи
         keyboard = get_meals_keyboard(meals, page)
     
-    # Отправляем или редактируем сообщение
-    if edit_message and callback_query:
-        await callback_query.message.edit_text(meals_text, parse_mode="HTML", reply_markup=keyboard)
-        await callback_query.answer()
-    else:
-        await msg_obj.answer(meals_text, parse_mode="HTML", reply_markup=keyboard)
-        if callback_query:
+    # Отправляем или редактируем сообщение в зависимости от контекста
+    try:
+        if edit_message and callback_query:
+            await callback_query.message.edit_text(meals_text, parse_mode="HTML", reply_markup=keyboard)
             await callback_query.answer()
+        else:
+            await msg_obj.answer(meals_text, parse_mode="HTML", reply_markup=keyboard)
+            if callback_query:
+                await callback_query.answer()
+    except Exception as e:
+        logger.error(f"Ошибка при отображении списка приемов пищи: {e}")
+        if callback_query:
+            await callback_query.answer("Произошла ошибка при отображении списка")
+            try:
+                # Повторная попытка с новым сообщением
+                await callback_query.message.answer(meals_text, parse_mode="HTML", reply_markup=keyboard)
+            except:
+                pass
+        elif message:
+            await message.answer("Произошла ошибка. Пожалуйста, повторите запрос.")
 
 # Функция для отображения главного меню
 async def show_main_menu(message: Message = None, callback_query: CallbackQuery = None):
