@@ -494,10 +494,7 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
     )
     
     try:
-        # Отправляем сообщение с подтверждением
-        await callback_query.message.edit_text(confirm_text, parse_mode="HTML")
-        
-        # Обновляем текущее сообщение и добавляем меню с действиями
+        # Отправляем сообщение с подтверждением и добавляем меню с действиями
         await callback_query.message.edit_text(
             f"{confirm_text}\n\nЧто хотите сделать дальше?",
             parse_mode="HTML",
@@ -524,20 +521,20 @@ async def process_cancel(callback_query: CallbackQuery, state: FSMContext):
     await state.clear()
     
     try:
-        # Пытаемся редактировать текущее сообщение
+        # Показываем меню с действиями, редактируя текущее сообщение
         await callback_query.message.edit_text(
-            "❌ Операция отменена.",
-            reply_markup=None
+            "❌ Операция отменена.\n\nЧто хотите сделать дальше?",
+            parse_mode="HTML",
+            reply_markup=get_main_menu_inline_keyboard()
         )
     except Exception as e:
         logger.error(f"Error editing message: {e}")
         # Если не удалось, отправляем новое
         await callback_query.message.answer(
-            "❌ Операция отменена."
+            "❌ Операция отменена.\n\nЧто хотите сделать дальше?",
+            parse_mode="HTML",
+            reply_markup=get_main_menu_inline_keyboard()
         )
-    
-    # Отправляем меню с действиями
-    await show_main_menu(callback_query=callback_query)
     
     # Подтверждаем обработку callback
     await callback_query.answer()
@@ -751,7 +748,7 @@ async def process_delete_meal(callback_query: CallbackQuery):
 # Обработка возврата к списку приемов пищи
 async def process_back_to_meals(callback_query: CallbackQuery):
     """Return to meals list"""
-    await show_meals(callback_query=callback_query)
+    await show_meals(callback_query=callback_query, edit_message=True)
 
 # Обработка обновления списка приемов пищи
 async def process_refresh_meals(callback_query: CallbackQuery):
