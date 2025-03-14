@@ -202,7 +202,13 @@ class DBUserData:
         target_start = datetime.combine(target_date, datetime.min.time())
         # Создаем осведомленную о часовом поясе дату
         tz = self.timezone
-        target_start = tz.localize(target_start) if hasattr(tz, 'localize') else pytz.utc.localize(target_start).astimezone(tz)
+        try:
+            # Пробуем сначала использовать localize метод (pytz)
+            target_start = tz.localize(target_start)
+        except AttributeError:
+            # Если нет метода localize, используем стандартный replace (для zoneinfo)
+            target_start = target_start.replace(tzinfo=tz)
+        
         target_end = target_start + timedelta(days=1, seconds=-1)
         
         # Конвертируем в UTC для SQL-запроса
@@ -271,7 +277,13 @@ class DBUserData:
         target_start = datetime.combine(target_date, datetime.min.time())
         # Создаем осведомленную о часовом поясе дату
         tz = self.timezone
-        target_start = tz.localize(target_start) if hasattr(tz, 'localize') else pytz.utc.localize(target_start).astimezone(tz)
+        try:
+            # Пробуем сначала использовать localize метод (pytz)
+            target_start = tz.localize(target_start)
+        except AttributeError:
+            # Если нет метода localize, используем стандартный replace (для zoneinfo)
+            target_start = target_start.replace(tzinfo=tz)
+        
         target_end = target_start + timedelta(days=1, seconds=-1)
         
         # Конвертируем в UTC для SQL-запроса
