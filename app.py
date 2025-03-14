@@ -32,14 +32,17 @@ def start_bot_process():
     """Start the bot in a separate process"""
     global bot_process
     
-    # Убиваем существующие процессы бота перед запуском нового
+    # Убиваем существующие процессы бота перед запуском нового и обрабатываем зомби-процессы
     try:
         # Используем SIGKILL для гарантированного завершения процессов
         subprocess.run("pkill -9 -f 'python run_bot.py'", shell=True)
+        # Пытаемся убить зомби-процессы run_bot.py
+        subprocess.run("ps aux | grep 'defunct' | grep 'python' | awk '{print $2}' | xargs -r kill -9", shell=True)
         # Ждем немного, чтобы процессы завершились
         import time
-        time.sleep(1)
-    except Exception:
+        time.sleep(2)
+    except Exception as e:
+        logger.error(f"Error while killing bot processes: {e}")
         pass
     
     if bot_process is None or bot_process.poll() is not None:
