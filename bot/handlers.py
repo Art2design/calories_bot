@@ -30,6 +30,7 @@ class CalorieTrackerStates(StatesGroup):
     waiting_for_photo = State()
     waiting_for_confirmation = State()
     waiting_for_calorie_limit = State()
+    waiting_for_timezone = State()
 
 # Функция для получения информации о пользователе
 def get_user_data(user_id: int) -> UserData:
@@ -223,10 +224,13 @@ async def show_settings(message: Message = None, callback_query: CallbackQuery =
     
     user_data = get_user_data(user_id)
     current_limit = user_data.calorie_limit
+    tz_code = user_data.timezone_code
+    tz_offset = user_data.get_timezone_offset()
     
     settings_text = (
         f"⚙️ <b>Настройки</b>\n\n"
-        f"Текущий лимит калорий: {current_limit if current_limit else 'не установлен'}\n\n"
+        f"🎯 Текущий лимит калорий: {current_limit if current_limit else 'не установлен'}\n"
+        f"🕒 Часовой пояс: {tz_code} ({tz_offset})\n\n"
         f"Выберите действие:"
     )
     
@@ -639,6 +643,87 @@ async def process_refresh_meals(callback_query: CallbackQuery):
         edit_message=True
     )
 
+# Функция для выбора часового пояса
+async def show_timezone_selection(callback_query: CallbackQuery, state: FSMContext):
+    """Show timezone selection screen"""
+    user_id = callback_query.from_user.id
+    user_data = get_user_data(user_id)
+    current_timezone = user_data.timezone_code
+    
+    timezone_text = (
+        f"🕒 <b>Настройка часового пояса</b>\n\n"
+        f"Текущий часовой пояс: <b>{current_timezone}</b> ({user_data.get_timezone_offset()})\n\n"
+        f"Выберите часовой пояс из списка ниже:"
+    )
+    
+    # Создаем клавиатуру с выбором часовых поясов
+    keyboard = get_timezone_keyboard(current_timezone)
+    
+    await callback_query.message.edit_text(timezone_text, parse_mode="HTML", reply_markup=keyboard)
+    await state.set_state(CalorieTrackerStates.waiting_for_timezone)
+    await callback_query.answer()
+
+# Функция для отображения страниц с часовыми поясами
+async def process_timezone_page(callback_query: CallbackQuery, state: FSMContext):
+    """Navigate through timezone pages"""
+    # Получаем номер страницы из callback_data
+    data_parts = callback_query.data.split(":")
+    if len(data_parts) != 2:
+        await callback_query.answer("Ошибка в формате данных")
+        return
+    
+    try:
+        page = int(data_parts[1])
+    except ValueError:
+        await callback_query.answer("Некорректный номер страницы")
+        return
+    
+    # Получаем текущий часовой пояс пользователя
+    user_id = callback_query.from_user.id
+    user_data = get_user_data(user_id)
+    current_timezone = user_data.timezone_code
+    
+    # Обновляем клавиатуру с часовыми поясами
+    keyboard = get_timezone_keyboard(current_timezone, page)
+    
+    # Обновляем сообщение с новой клавиатурой
+    await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+    await callback_query.answer()
+
+# Функция для установки выбранного часового пояса
+async def set_selected_timezone(callback_query: CallbackQuery, state: FSMContext):
+    """Set selected timezone for user"""
+    # Получаем выбранный часовой пояс из callback_data
+    data_parts = callback_query.data.split(":")
+    if len(data_parts) != 2:
+        await callback_query.answer("Ошибка в формате данных")
+        return
+    
+    timezone_code = data_parts[1]
+    
+    # Получаем данные пользователя
+    user_id = callback_query.from_user.id
+    user_data = get_user_data(user_id)
+    
+    # Устанавливаем новый часовой пояс
+    success = user_data.set_timezone(timezone_code)
+    
+    if success:
+        # Сообщаем об успешной установке
+        await callback_query.answer(f"Часовой пояс установлен: {timezone_code}")
+        
+        # Возвращаемся в настройки
+        await show_settings(callback_query=callback_query)
+        await state.clear()
+    else:
+        await callback_query.answer("Ошибка: недопустимый часовой пояс")
+
+# Функция для возврата из выбора часового пояса в настройки
+async def back_to_settings(callback_query: CallbackQuery, state: FSMContext):
+    """Return from timezone selection to settings"""
+    await state.clear()
+    await show_settings(callback_query=callback_query)
+
 # Регистрация обработчиков
 def register_handlers(dp: Dispatcher):
     """Register all handlers"""
@@ -686,6 +771,12 @@ def register_handlers(dp: Dispatcher):
     
     # Callback query handlers - settings
     router.callback_query.register(set_calorie_limit, F.data == "set_calorie_limit")
+    router.callback_query.register(show_timezone_selection, F.data == "set_timezone")
+    
+    # Callback query handlers - timezone selection
+    router.callback_query.register(process_timezone_page, F.data.startswith("timezone_page:"))
+    router.callback_query.register(set_selected_timezone, F.data.startswith("timezone:"))
+    router.callback_query.register(back_to_settings, F.data == "back_to_settings")
     
     # Include the router in the dispatcher
     dp.include_router(router)

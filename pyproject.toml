@@ -13,5 +13,6 @@ dependencies = [
     "openai>=1.66.3",
     "psycopg2-binary>=2.9.10",
     "python-dotenv>=1.0.1",
+    "pytz>=2025.1",
     "tlgbotfwk>=0.4.61",
 ]

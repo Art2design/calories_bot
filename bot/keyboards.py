@@ -1,5 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import date, timedelta
+from bot.storage import AVAILABLE_TIMEZONES
 
 def get_main_keyboard():
     """Return the main keyboard with permanent functionality buttons"""
@@ -108,9 +109,53 @@ def get_settings_keyboard():
             InlineKeyboardButton(text="🎯 Установить лимит калорий", callback_data="set_calorie_limit")
         ],
         [
+            InlineKeyboardButton(text="🕒 Изменить часовой пояс", callback_data="set_timezone")
+        ],
+        [
             InlineKeyboardButton(text="🔙 Назад в главное меню", callback_data="back_to_main")
         ]
     ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
+    return keyboard
+
+def get_timezone_keyboard(current_timezone="МСК", page=0):
+    """Return inline keyboard with timezone options"""
+    # Разбиваем часовые пояса на страницы
+    page_size = 7
+    timezone_items = list(AVAILABLE_TIMEZONES.items())
+    total_pages = (len(timezone_items) - 1) // page_size + 1
+    
+    start_idx = page * page_size
+    end_idx = min(start_idx + page_size, len(timezone_items))
+    
+    kb = []
+    
+    # Добавляем заголовок с текущим часовым поясом
+    for i in range(start_idx, end_idx):
+        tz_code, tz_name = timezone_items[i]
+        # Добавляем маркер текущего часового пояса
+        prefix = "✓ " if tz_code == current_timezone else ""
+        kb.append([
+            InlineKeyboardButton(
+                text=f"{prefix}{tz_code} ({tz_name.split('/')[-1]})",
+                callback_data=f"timezone:{tz_code}"
+            )
+        ])
+    
+    # Добавляем навигацию
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton(text="◀️ Пред.", callback_data=f"timezone_page:{page-1}"))
+    
+    if page < total_pages - 1:
+        nav_buttons.append(InlineKeyboardButton(text="След. ▶️", callback_data=f"timezone_page:{page+1}"))
+    
+    if nav_buttons:
+        kb.append(nav_buttons)
+    
+    # Добавляем кнопку назад
+    kb.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_settings")])
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
     return keyboard
 
