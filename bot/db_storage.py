@@ -381,15 +381,16 @@ class DBUserData:
             
         return f"{bar_char * filled_chars}{'⬜' * empty_chars} {int(percentage)}%"
 
-# Хранилище данных пользователей
-db_user_data_storage: Dict[int, DBUserData] = {}
+# Кэш данных пользователей для оптимизации
+db_user_data_cache: Dict[int, DBUserData] = {}
 
 # Инициализация базы данных
 init_db()
 
 # Функция для получения данных пользователя
 def get_user_data(user_id: int) -> DBUserData:
-    """Получить или создать данные пользователя"""
-    if user_id not in db_user_data_storage:
-        db_user_data_storage[user_id] = DBUserData(user_id)
-    return db_user_data_storage[user_id]
+    """Получить или создать данные пользователя из базы данных"""
+    # Сначала проверяем кэш, чтобы сократить количество обращений к БД
+    if user_id not in db_user_data_cache:
+        db_user_data_cache[user_id] = DBUserData(user_id)
+    return db_user_data_cache[user_id]
