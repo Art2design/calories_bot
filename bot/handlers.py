@@ -20,7 +20,7 @@ from bot.keyboards import (
     get_timezone_keyboard,
     get_main_menu_inline_keyboard
 )
-from bot.storage import UserData, user_data_storage
+from bot.db_storage import DBUserData, get_user_data
 from bot.openai_integration import analyze_food_image
 
 # Configure logging
@@ -33,12 +33,8 @@ class CalorieTrackerStates(StatesGroup):
     waiting_for_calorie_limit = State()
     waiting_for_timezone = State()
 
-# Функция для получения информации о пользователе
-def get_user_data(user_id: int) -> UserData:
-    """Get or create user data"""
-    if user_id not in user_data_storage:
-        user_data_storage[user_id] = UserData(user_id)
-    return user_data_storage[user_id]
+# Функция get_user_data уже импортирована из db_storage, используем её напрямую
+# Другое имя для совместимости не требуется, так как имена совпадают
 
 # Command handlers
 async def cmd_start(message: Message, state: FSMContext):
