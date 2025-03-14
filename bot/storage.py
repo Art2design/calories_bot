@@ -206,7 +206,45 @@ class UserData:
         else:
             bar_char = "🟥"  # Красный для превышения лимита
             
-        return f"{bar_char * filled_chars}{'⬜' * empty_chars} {percentage}%"
+        return f"{bar_char * filled_chars}{'⬜' * empty_chars} {int(percentage)}%"
+    
+    def generate_nutrient_progress_bar(self, value: float, target: float, nutrient_type: str, width: int = 10) -> str:
+        """
+        Generate a text progress bar for nutrient consumption (protein, fat, carbs)
+        
+        Args:
+            value: Current amount of nutrient consumed
+            target: Target amount of nutrient
+            nutrient_type: Type of nutrient ('protein', 'fat', 'carbs')
+            width: Width of the progress bar
+            
+        Returns:
+            Formatted progress bar string with percentage
+        """
+        if target <= 0:
+            # Если цель не установлена, используем стандартные значения
+            if nutrient_type == "protein":
+                target = 75  # 75г белка - стандартная рекомендация
+            elif nutrient_type == "fat":
+                target = 60  # 60г жиров - стандартная рекомендация
+            elif nutrient_type == "carbs":
+                target = 250  # 250г углеводов - стандартная рекомендация
+        
+        percentage = min(100, int(value / target * 100)) if target > 0 else 0
+        filled_chars = min(int(percentage / 100 * width), width)
+        empty_chars = width - filled_chars
+        
+        # Выбираем эмодзи в зависимости от типа нутриента
+        if nutrient_type == "protein":
+            bar_char = "🔵"  # Синий для белков
+        elif nutrient_type == "fat":
+            bar_char = "🟡"  # Жёлтый для жиров
+        elif nutrient_type == "carbs":
+            bar_char = "🟠"  # Оранжевый для углеводов
+        else:
+            bar_char = "⬛"  # Чёрный для неизвестного типа
+            
+        return f"{bar_char * filled_chars}{'⬜' * empty_chars} {int(percentage)}%"
 
 # In-memory storage for user data
 user_data_storage: Dict[int, UserData] = {}

@@ -104,11 +104,13 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
         user_id = message.from_user.id
         msg_obj = message
     
-    # Если дата не указана, используем сегодня
+    # Если дата не указана, используем сегодня в часовом поясе пользователя
     if current_date is None:
-        current_date = date.today()
+        user_data = get_user_data(user_id)
+        current_date = user_data.get_current_date()
+    else:
+        user_data = get_user_data(user_id)
     
-    user_data = get_user_data(user_id)
     stats = user_data.get_stats_by_date(current_date)
     
     # Если нет записей за эту дату
@@ -119,35 +121,52 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
             f"Отправьте фото еды, чтобы добавить новую запись."
         )
     else:
-        # Создаем прогресс-бар
-        progress_bar = user_data.generate_calorie_progress_bar(stats["calorie_percentage"])
+        # Создаем прогресс-бары
+        calorie_bar = user_data.generate_calorie_progress_bar(stats["calorie_percentage"])
         
-        # Создаем текст сообщения с прогресс-баром
+        # Получаем целевые значения БЖУ и создаем прогресс-бары
+        protein_bar = user_data.generate_nutrient_progress_bar(stats["protein"], 75, "protein")
+        fat_bar = user_data.generate_nutrient_progress_bar(stats["fat"], 60, "fat")
+        carbs_bar = user_data.generate_nutrient_progress_bar(stats["carbs"], 250, "carbs")
+        
+        # Создаем текст сообщения с прогресс-барами
         limit_text = f"Лимит калорий: {stats['calorie_limit']} ккал\n" if stats['calorie_limit'] else ""
         
         stats_text = (
             f"📊 <b>Сводка питания за {stats['date']}</b>\n\n"
             f"Приёмов пищи: {stats['entries']}\n"
             f"{limit_text}"
-            f"Потреблено: {stats['calories']} ккал\n"
-            f"Прогресс: {progress_bar}\n\n"
+            f"Калории: {stats['calories']} ккал\n"
+            f"Прогресс: {calorie_bar}\n\n"
             f"<b>Пищевая ценность:</b>\n"
-            f"🥩 Белки: {stats['protein']}г\n"
-            f"🧈 Жиры: {stats['fat']}г\n"
-            f"🍚 Углеводы: {stats['carbs']}г\n"
+            f"🥩 Белки: {stats['protein']}г\n{protein_bar}\n"
+            f"🧈 Жиры: {stats['fat']}г\n{fat_bar}\n"
+            f"🍚 Углеводы: {stats['carbs']}г\n{carbs_bar}\n"
         )
     
     # Создаем клавиатуру для навигации по датам
     keyboard = get_stats_keyboard(current_date)
     
     # Отправляем или редактируем сообщение
-    if edit_message and callback_query:
-        await callback_query.message.edit_text(stats_text, parse_mode="HTML", reply_markup=keyboard)
-        await callback_query.answer()
-    else:
-        await msg_obj.answer(stats_text, parse_mode="HTML", reply_markup=keyboard)
-        if callback_query:
+    try:
+        if edit_message and callback_query:
+            await callback_query.message.edit_text(stats_text, parse_mode="HTML", reply_markup=keyboard)
             await callback_query.answer()
+        else:
+            await msg_obj.answer(stats_text, parse_mode="HTML", reply_markup=keyboard)
+            if callback_query:
+                await callback_query.answer()
+    except Exception as e:
+        logger.error(f"Ошибка при отображении сводки питания: {e}")
+        if callback_query:
+            await callback_query.answer("Произошла ошибка при отображении сводки")
+            try:
+                # Повторная попытка с новым сообщением
+                await callback_query.message.answer(stats_text, parse_mode="HTML", reply_markup=keyboard)
+            except:
+                pass
+        elif message:
+            await message.answer("Произошла ошибка. Пожалуйста, повторите запрос.")
 
 # Функции для отображения списка приемов пищи
 async def show_meals(message: Message = None, callback_query: CallbackQuery = None, 
@@ -440,8 +459,11 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
     # Get updated stats
     today_stats = user_data.get_today_stats()
     
-    # Create progress bar
-    progress_bar = user_data.generate_calorie_progress_bar(today_stats["calorie_percentage"])
+    # Create progress bars
+    calorie_bar = user_data.generate_calorie_progress_bar(today_stats["calorie_percentage"])
+    protein_bar = user_data.generate_nutrient_progress_bar(today_stats["protein"], 75, "protein")
+    fat_bar = user_data.generate_nutrient_progress_bar(today_stats["fat"], 60, "fat")
+    carbs_bar = user_data.generate_nutrient_progress_bar(today_stats["carbs"], 250, "carbs")
     
     # Prepare confirmation message
     calorie_limit = today_stats["calorie_limit"]
@@ -454,18 +476,34 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
         f"📊 <b>Сводка за сегодня:</b>\n"
         f"Приёмов пищи: {today_stats['entries']}\n"
         f"{limit_text}"
-        f"Потреблено: {today_stats['calories']} ккал\n"
-        f"Прогресс: {progress_bar}\n"
+        f"Калории: {today_stats['calories']} ккал\n"
+        f"{calorie_bar}\n\n"
+        f"<b>Пищевая ценность:</b>\n"
+        f"🥩 Белки: {today_stats['protein']}г\n{protein_bar}\n"
+        f"🧈 Жиры: {today_stats['fat']}г\n{fat_bar}\n"
+        f"🍚 Углеводы: {today_stats['carbs']}г\n{carbs_bar}\n"
     )
     
-    # Отправляем сообщение с подтверждением
-    await callback_query.message.edit_text(confirm_text, parse_mode="HTML")
-    
-    # Отправляем меню с действиями
-    await callback_query.message.answer(
-        "Что хотите сделать дальше?",
-        reply_markup=get_main_menu_inline_keyboard()
-    )
+    try:
+        # Отправляем сообщение с подтверждением
+        await callback_query.message.edit_text(confirm_text, parse_mode="HTML")
+        
+        # Отправляем меню с действиями
+        await callback_query.message.answer(
+            "Что хотите сделать дальше?",
+            reply_markup=get_main_menu_inline_keyboard()
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при отображении подтверждения: {e}")
+        try:
+            # Если редактирование не удалось, отправляем новое сообщение
+            await callback_query.message.answer(confirm_text, parse_mode="HTML")
+            await callback_query.message.answer(
+                "Что хотите сделать дальше?",
+                reply_markup=get_main_menu_inline_keyboard()
+            )
+        except:
+            pass
     
     await state.clear()
     await callback_query.answer()
