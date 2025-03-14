@@ -214,15 +214,54 @@ async def show_main_menu(message: Message = None, callback_query: CallbackQuery 
     # Определяем либо из сообщения, либо из callback_query
     if callback_query:
         user_id = callback_query.from_user.id
+        user_data = get_user_data(user_id)
+        
+        today_stats = user_data.get_today_stats()
+        stats_text = ""
+        
+        # Добавляем краткую статистику за сегодня
+        if today_stats["entries"] > 0:
+            current_calories = today_stats["calories"]
+            limit = today_stats["calorie_limit"] or 2000
+            percent = min(100, int(current_calories / limit * 100))
+            
+            stats_text = (
+                f"📊 <b>Статистика на сегодня:</b>\n"
+                f"• Калории: {current_calories} ккал ({percent}%)\n"
+                f"• Приёмов пищи: {today_stats['entries']}\n\n"
+            )
+        
         await callback_query.message.edit_text(
-            "🏠 <b>Главное меню</b>\n\nВыберите действие:",
+            f"🏠 <b>Главное меню</b>\n\n"
+            f"{stats_text}"
+            f"Отправьте фото еды для анализа или выберите действие:",
             parse_mode="HTML",
             reply_markup=get_main_menu_inline_keyboard()
         )
         await callback_query.answer()
     else:
+        user_id = message.from_user.id
+        user_data = get_user_data(user_id)
+        
+        today_stats = user_data.get_today_stats()
+        stats_text = ""
+        
+        # Добавляем краткую статистику за сегодня
+        if today_stats["entries"] > 0:
+            current_calories = today_stats["calories"]
+            limit = today_stats["calorie_limit"] or 2000
+            percent = min(100, int(current_calories / limit * 100))
+            
+            stats_text = (
+                f"📊 <b>Статистика на сегодня:</b>\n"
+                f"• Калории: {current_calories} ккал ({percent}%)\n"
+                f"• Приёмов пищи: {today_stats['entries']}\n\n"
+            )
+        
         await message.answer(
-            "🏠 <b>Главное меню</b>\n\nВыберите действие:",
+            f"🏠 <b>Главное меню</b>\n\n"
+            f"{stats_text}"
+            f"Отправьте фото еды для анализа или выберите действие:",
             parse_mode="HTML",
             reply_markup=get_main_menu_inline_keyboard()
         )

@@ -34,24 +34,32 @@ def get_stats_keyboard(current_date=None):
         current_date = date.today()
     
     prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
-    next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
+    today = date.today()
     current_str = current_date.strftime("%d.%m.%Y")
     
-    kb = [
-        [
-            InlineKeyboardButton(text="◀️ Пред. день", callback_data=f"date:{prev_date}"),
-            InlineKeyboardButton(text=f"{current_str}", callback_data="current_date"),
-            InlineKeyboardButton(text="След. день ▶️", callback_data=f"date:{next_date}")
-        ],
-        [
-            InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_stats")
-        ]
-    ]
+    # Кнопки навигации
+    nav_row = []
+    nav_row.append(InlineKeyboardButton(text="◀️ Пред. день", callback_data=f"date:{prev_date}"))
+    nav_row.append(InlineKeyboardButton(text=f"{current_str}", callback_data="current_date"))
+    
+    # Только если текущий день не сегодня и не в будущем, добавляем кнопку следующего дня
+    if current_date < today:
+        next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
+        nav_row.append(InlineKeyboardButton(text="След. день ▶️", callback_data=f"date:{next_date}"))
+    
+    kb = [nav_row]
+    
+    # Добавляем кнопки управления
+    buttons_row = [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_stats")]
+    
+    # Добавляем кнопку возврата в главное меню
+    buttons_row.append(InlineKeyboardButton(text="🏠 Меню", callback_data="back_to_main"))
+    kb.append(buttons_row)
     
     # Если текущий день - не сегодня, добавляем кнопку "Сегодня"
-    if current_date != date.today():
-        today = date.today().strftime("%Y-%m-%d")
-        kb.append([InlineKeyboardButton(text="📅 Перейти к сегодня", callback_data=f"date:{today}")])
+    if current_date != today:
+        today_str = today.strftime("%Y-%m-%d")
+        kb.append([InlineKeyboardButton(text="📅 Перейти к сегодня", callback_data=f"date:{today_str}")])
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
     return keyboard
@@ -86,7 +94,10 @@ def get_meals_keyboard(meals, page=0, page_size=5):
     if nav_buttons:
         kb.append(nav_buttons)
     
-    kb.append([InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_meals")])
+    # Добавляем кнопки управления
+    control_buttons = [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_meals")]
+    control_buttons.append(InlineKeyboardButton(text="🏠 Меню", callback_data="back_to_main"))
+    kb.append(control_buttons)
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
     return keyboard
@@ -97,6 +108,9 @@ def get_meal_detail_keyboard(meal_index):
         [
             InlineKeyboardButton(text="❌ Удалить", callback_data=f"delete_meal:{meal_index}"),
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_meals")
+        ],
+        [
+            InlineKeyboardButton(text="🏠 Главное меню", callback_data="back_to_main")
         ]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
