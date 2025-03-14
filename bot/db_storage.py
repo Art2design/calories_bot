@@ -72,7 +72,9 @@ class DBUserData:
     
     def get_current_datetime(self) -> datetime:
         """Получить текущее время в часовом поясе пользователя"""
-        return datetime.now(self.timezone)
+        # Используем timezone как свойство
+        tz = self.timezone
+        return datetime.now(tz)
     
     def get_current_date(self) -> date:
         """Получить текущую дату в часовом поясе пользователя"""
@@ -107,7 +109,10 @@ class DBUserData:
     def get_timezone_offset(self) -> str:
         """Получить смещение часового пояса относительно UTC"""
         tz = self.timezone
-        offset = tz.utcoffset(datetime.utcnow())
+        now = datetime.utcnow()
+        offset = tz.utcoffset(now)
+        if offset is None:
+            return "UTC+0"
         hours = offset.total_seconds() // 3600
         minutes = (offset.total_seconds() % 3600) // 60
         
