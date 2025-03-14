@@ -311,11 +311,23 @@ async def show_settings(message: Message = None, callback_query: CallbackQuery =
     # Создаем клавиатуру настроек
     keyboard = get_settings_keyboard()
     
-    if callback_query:
-        await callback_query.message.edit_text(settings_text, parse_mode="HTML", reply_markup=keyboard)
-        await callback_query.answer()
-    else:
-        await msg_obj.answer(settings_text, parse_mode="HTML", reply_markup=keyboard)
+    try:
+        if callback_query:
+            await callback_query.message.edit_text(settings_text, parse_mode="HTML", reply_markup=keyboard)
+            await callback_query.answer()
+        else:
+            await msg_obj.answer(settings_text, parse_mode="HTML", reply_markup=keyboard)
+    except Exception as e:
+        logger.error(f"Ошибка при отображении настроек: {e}")
+        if callback_query:
+            await callback_query.answer("Ошибка при отображении настроек")
+            try:
+                # Повторная попытка с новым сообщением
+                await callback_query.message.answer(settings_text, parse_mode="HTML", reply_markup=keyboard)
+            except:
+                pass
+        elif message:
+            await message.answer("Произошла ошибка. Пожалуйста, повторите запрос.")
 
 # Обработка фотографии - автоматически вызывается при получении фото
 async def process_photo(message: Message, state: FSMContext):
