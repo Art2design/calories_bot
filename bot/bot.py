@@ -28,6 +28,9 @@ class BotApp:
         """Main function to start the bot"""
         self.logger.info("Starting bot...")
         
+        # Удаляем меню команд у бота
+        await self.bot.delete_my_commands()
+        
         # Start polling (aiogram 3.x way)
         try:
             # In aiogram 3.x, polling is started differently
