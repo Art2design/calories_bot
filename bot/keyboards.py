@@ -10,10 +10,7 @@ def get_main_keyboard():
             KeyboardButton(text="🍽️ Приемы пищи")
         ],
         [
-            KeyboardButton(text="🏠 Главное меню"),
-            KeyboardButton(text="⚙️ Настройки")
-        ],
-        [
+            KeyboardButton(text="⚙️ Настройки"),
             KeyboardButton(text="ℹ️ Инструкция")
         ]
     ]
@@ -54,9 +51,6 @@ def get_stats_keyboard(current_date=None):
     
     # Добавляем кнопки управления
     buttons_row = [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_stats")]
-    
-    # Добавляем кнопку возврата в главное меню
-    buttons_row.append(InlineKeyboardButton(text="🏠 Меню", callback_data="back_to_main"))
     kb.append(buttons_row)
     
     # Если текущий день - не сегодня, добавляем кнопку "Сегодня"
@@ -176,18 +170,4 @@ def get_timezone_keyboard(current_timezone="МСК", page=0):
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
     return keyboard
 
-def get_main_menu_inline_keyboard():
-    """Return inline keyboard for main menu"""
-    kb = [
-        [
-            InlineKeyboardButton(text="📊 Сводка питания", callback_data="show_stats")
-        ],
-        [
-            InlineKeyboardButton(text="🍽️ Приемы пищи", callback_data="show_meals")
-        ],
-        [
-            InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings")
-        ]
-    ]
-    keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
-    return keyboard
+# Функция get_main_menu_inline_keyboard удалена по запросу пользователя

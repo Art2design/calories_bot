@@ -224,73 +224,7 @@ async def show_meals(message: Message = None, callback_query: CallbackQuery = No
         elif message:
             await message.answer("Произошла ошибка. Пожалуйста, повторите запрос.")
 
-# Функция для отображения главного меню
-async def show_main_menu(message: Message = None, callback_query: CallbackQuery = None):
-    """Show main menu"""
-    # Определяем либо из сообщения, либо из callback_query
-    if callback_query:
-        user_id = callback_query.from_user.id
-        user_data = get_user_data(user_id)
-        
-        today_stats = user_data.get_today_stats()
-        stats_text = ""
-        
-        # Добавляем краткую статистику за сегодня
-        if today_stats["entries"] > 0:
-            current_calories = today_stats["calories"]
-            limit = today_stats["calorie_limit"] or 2000
-            percent = min(100, int(current_calories / limit * 100))
-            
-            stats_text = (
-                f"📊 <b>Статистика на сегодня:</b>\n"
-                f"• Калории: {current_calories} ккал ({percent}%)\n"
-                f"• Приёмов пищи: {today_stats['entries']}\n\n"
-            )
-        
-        menu_text = (
-            f"🏠 <b>Главное меню</b>\n\n"
-            f"{stats_text}"
-            f"Отправьте фото еды для анализа или выберите действие:"
-        )
-        
-        # Всегда отправляем новое сообщение вместо редактирования
-        await callback_query.message.answer(
-            menu_text,
-            parse_mode="HTML",
-            reply_markup=get_main_menu_inline_keyboard()
-        )
-        # Удаляем старое сообщение
-        try:
-            await callback_query.message.delete()
-        except:
-            pass
-        await callback_query.answer()
-    else:
-        user_id = message.from_user.id
-        user_data = get_user_data(user_id)
-        
-        today_stats = user_data.get_today_stats()
-        stats_text = ""
-        
-        # Добавляем краткую статистику за сегодня
-        if today_stats["entries"] > 0:
-            current_calories = today_stats["calories"]
-            limit = today_stats["calorie_limit"] or 2000
-            percent = min(100, int(current_calories / limit * 100))
-            
-            stats_text = (
-                f"📊 <b>Статистика на сегодня:</b>\n"
-                f"• Калории: {current_calories} ккал ({percent}%)\n"
-                f"• Приёмов пищи: {today_stats['entries']}\n\n"
-            )
-        
-        await message.answer(
-            f"🏠 <b>Главное меню</b>\n\n"
-            f"{stats_text}"
-            f"Отправьте фото еды для анализа или выберите действие:",
-            parse_mode="HTML",
-            reply_markup=get_main_menu_inline_keyboard()
-        )
+# Функция главного меню удалена по запросу пользователя
 
 # Функция для отображения настроек
 async def show_settings(message: Message = None, callback_query: CallbackQuery = None):
