@@ -39,6 +39,9 @@ class CalorieTrackerStates(StatesGroup):
     waiting_for_fat_limit = State()
     waiting_for_carbs_limit = State()
     waiting_for_fiber_limit = State()
+    waiting_for_sugar_limit = State()
+    waiting_for_sodium_limit = State()
+    waiting_for_cholesterol_limit = State()
     waiting_for_weight = State()
     waiting_for_body_fat = State()
 
@@ -129,22 +132,36 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
         fat_target = stats.get('fat_limit', 60)
         carbs_target = stats.get('carbs_limit', 250)
         fiber_target = stats.get('fiber_limit', 30)
+        sugar_target = stats.get('sugar_limit', 50)
+        sodium_target = stats.get('sodium_limit', 2300)
+        cholesterol_target = stats.get('cholesterol_limit', 300)
 
-        if protein_target == None:
-            protein_target = 0
-        if carbs_target == None:
-            carbs_target = 0
-        if fat_target == None:
-            fat_target = 0
-        if fiber_target == None:
-            fiber_target = 0
-        
+        # Проверка на None и установка дефолтных значений
+        if protein_target is None:
+            protein_target = 75
+        if carbs_target is None:
+            carbs_target = 250
+        if fat_target is None:
+            fat_target = 60
+        if fiber_target is None:
+            fiber_target = 30
+        if sugar_target is None:
+            sugar_target = 50
+        if sodium_target is None:
+            sodium_target = 2300
+        if cholesterol_target is None:
+            cholesterol_target = 300
         
         # Создаем прогресс-бары с текущими/целевыми значениями
         protein_bar = user_data.generate_nutrient_progress_bar(stats["protein"], protein_target, "protein")
         fat_bar = user_data.generate_nutrient_progress_bar(stats["fat"], fat_target, "fat")
         carbs_bar = user_data.generate_nutrient_progress_bar(stats["carbs"], carbs_target, "carbs")
         fiber_bar = user_data.generate_nutrient_progress_bar(stats.get("fiber", 0), fiber_target, "fiber")
+        
+        # Создаем прогресс-бары для новых нутриентов
+        sugar_bar = user_data.generate_nutrient_progress_bar(stats.get("sugar", 0), sugar_target, "sugar")
+        sodium_bar = user_data.generate_nutrient_progress_bar(stats.get("sodium", 0), sodium_target, "sodium")
+        cholesterol_bar = user_data.generate_nutrient_progress_bar(stats.get("cholesterol", 0), cholesterol_target, "cholesterol")
         
         # Создаем текст сообщения с прогресс-барами
         limit_text = f"Лимит калорий: {stats['calorie_limit']} ккал\n" if stats['calorie_limit'] else ""
@@ -156,12 +173,15 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
             f"{limit_text}"
             f"Калории: {stats['calories']}/{stats.get('calorie_limit', '—')} ккал\n"
             f"Прогресс: {calorie_bar}\n\n"
-            f"<b>Пищевая ценность:</b>\n"
+            f"<b>Основные нутриенты:</b>\n"
             f"🥩 Белки: {stats['protein']}/{protein_target}г\n{protein_bar}\n"
             f"🧈 Жиры: {stats['fat']}/{fat_target}г\n{fat_bar}\n"
             f"🍚 Углеводы: {stats['carbs']}/{carbs_target}г\n{carbs_bar}\n"
             f"🌱 Клетчатка: {stats.get('fiber', 0)}/{fiber_target}г\n{fiber_bar}\n"
         )
+        
+        # Добавляем кнопку для просмотра всех нутриентов
+        keyboard = get_improved_stats_keyboard(stats)
     
     # Создаем клавиатуру для навигации по датам
     keyboard = get_stats_keyboard(current_date)
@@ -1092,10 +1112,85 @@ async def process_carbs_limit(message: Message, state: FSMContext):
 
 # Функция для обработки ввода лимита клетчатки и сохранения всех лимитов
 async def process_fiber_limit(message: Message, state: FSMContext):
-    """Process fiber limit input and save all macros"""
+    """Process fiber limit input and set next state for sugar input"""
     try:
         fiber = float(message.text.strip())
         if fiber < 0:
+            raise ValueError("Limit must be non-negative")
+        
+        # Сохраняем лимит клетчатки
+        await state.update_data(fiber_limit=fiber)
+        
+        # Спрашиваем о лимите сахара
+        await message.answer(
+            "🍬 <b>Установка лимита сахара</b>\n\n"
+            "Введите лимит потребления сахара в граммах (рекомендуется 25-50г).\n"
+            "Введите 0, если не хотите устанавливать лимит."
+        )
+        
+        # Переходим к следующему шагу
+        await state.set_state(CalorieTrackerStates.waiting_for_sugar_limit)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для лимита клетчатки."
+        )
+
+async def process_sugar_limit(message: Message, state: FSMContext):
+    """Process sugar limit input and set next state for sodium input"""
+    try:
+        sugar = float(message.text.strip())
+        if sugar < 0:
+            raise ValueError("Limit must be non-negative")
+        
+        # Сохраняем лимит сахара
+        await state.update_data(sugar_limit=sugar)
+        
+        # Спрашиваем о лимите натрия
+        await message.answer(
+            "🧂 <b>Установка лимита натрия</b>\n\n"
+            "Введите лимит потребления натрия в миллиграммах (рекомендуется 1500-2300мг).\n"
+            "Введите 0, если не хотите устанавливать лимит."
+        )
+        
+        # Переходим к следующему шагу
+        await state.set_state(CalorieTrackerStates.waiting_for_sodium_limit)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для лимита сахара."
+        )
+
+async def process_sodium_limit(message: Message, state: FSMContext):
+    """Process sodium limit input and set next state for cholesterol input"""
+    try:
+        sodium = float(message.text.strip())
+        if sodium < 0:
+            raise ValueError("Limit must be non-negative")
+        
+        # Сохраняем лимит натрия
+        await state.update_data(sodium_limit=sodium)
+        
+        # Спрашиваем о лимите холестерина
+        await message.answer(
+            "🥚 <b>Установка лимита холестерина</b>\n\n"
+            "Введите лимит потребления холестерина в миллиграммах (рекомендуется до 300мг).\n"
+            "Введите 0, если не хотите устанавливать лимит."
+        )
+        
+        # Переходим к следующему шагу
+        await state.set_state(CalorieTrackerStates.waiting_for_cholesterol_limit)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для лимита натрия."
+        )
+
+async def process_cholesterol_limit(message: Message, state: FSMContext):
+    """Process cholesterol limit input and save all macros"""
+    try:
+        cholesterol = float(message.text.strip())
+        if cholesterol < 0:
             raise ValueError("Limit must be non-negative")
         
         # Получаем все сохраненные лимиты
@@ -1103,6 +1198,9 @@ async def process_fiber_limit(message: Message, state: FSMContext):
         protein = state_data.get("protein_limit")
         fat = state_data.get("fat_limit")
         carbs = state_data.get("carbs_limit")
+        fiber = state_data.get("fiber_limit", 0)
+        sugar = state_data.get("sugar_limit", 0)
+        sodium = state_data.get("sodium_limit", 0)
         
         if not protein or not fat or not carbs:
             await message.answer(
@@ -1111,7 +1209,7 @@ async def process_fiber_limit(message: Message, state: FSMContext):
             await state.clear()
             return
         
-        # Устанавливаем лимиты КБЖУ
+        # Устанавливаем лимиты КБЖУ и дополнительных нутриентов
         user_id = message.from_user.id
         user_data = get_user_data(user_id)
         
@@ -1119,20 +1217,37 @@ async def process_fiber_limit(message: Message, state: FSMContext):
             protein=protein,
             fat=fat,
             carbs=carbs,
-            fiber=fiber if fiber > 0 else None
+            fiber=fiber if fiber > 0 else None,
+            sugar=sugar if sugar > 0 else None,
+            sodium=sodium if sodium > 0 else None,
+            cholesterol=cholesterol if cholesterol > 0 else None
         )
         
         if success:
             # Рассчитываем калории из КБЖУ (4 ккал на грамм белка, 9 на грамм жира, 4 на грамм углеводов)
             calculated_calories = round(protein * 4 + fat * 9 + carbs * 4)
             
-            # Предлагаем обновить и лимит калорий тоже
-            update_calories_text = (
-                f"✅ <b>Лимиты КБЖУ успешно установлены!</b>\n\n"
+            # Создаем текст с установленными лимитами
+            limits_text = (
                 f"🥩 Белки: {protein}г\n"
                 f"🧈 Жиры: {fat}г\n"
                 f"🍚 Углеводы: {carbs}г\n"
-                f"{f'🌱 Клетчатка: {fiber}г' if fiber > 0 else ''}\n\n"
+            )
+            
+            # Добавляем дополнительные нутриенты, если установлены
+            if fiber > 0:
+                limits_text += f"🌱 Клетчатка: {fiber}г\n"
+            if sugar > 0:
+                limits_text += f"🍬 Сахар: {sugar}г\n"
+            if sodium > 0:
+                limits_text += f"🧂 Натрий: {sodium}мг\n"
+            if cholesterol > 0:
+                limits_text += f"🥚 Холестерин: {cholesterol}мг\n"
+            
+            # Предлагаем обновить и лимит калорий тоже
+            update_calories_text = (
+                f"✅ <b>Лимиты нутриентов успешно установлены!</b>\n\n"
+                f"{limits_text}\n"
                 f"Рассчитанный лимит калорий: {calculated_calories} ккал\n"
                 f"Хотите установить этот лимит калорий?"
             )
@@ -1344,6 +1459,9 @@ def register_handlers(dp: Dispatcher):
     router.message.register(process_fat_limit, StateFilter(CalorieTrackerStates.waiting_for_fat_limit))
     router.message.register(process_carbs_limit, StateFilter(CalorieTrackerStates.waiting_for_carbs_limit))
     router.message.register(process_fiber_limit, StateFilter(CalorieTrackerStates.waiting_for_fiber_limit))
+    router.message.register(process_sugar_limit, StateFilter(CalorieTrackerStates.waiting_for_sugar_limit))
+    router.message.register(process_sodium_limit, StateFilter(CalorieTrackerStates.waiting_for_sodium_limit))
+    router.message.register(process_cholesterol_limit, StateFilter(CalorieTrackerStates.waiting_for_cholesterol_limit))
     router.message.register(process_weight, StateFilter(CalorieTrackerStates.waiting_for_weight))
     router.message.register(process_body_fat, StateFilter(CalorieTrackerStates.waiting_for_body_fat))
     
