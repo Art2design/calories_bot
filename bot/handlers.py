@@ -123,6 +123,8 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
             f"У вас нет записей о питании за этот день.\n\n"
             f"Отправьте фото еды, чтобы добавить новую запись."
         )
+        # Используем обычную клавиатуру навигации по датам
+        keyboard = get_stats_keyboard(current_date)
     else:
         # Создаем прогресс-бары для всех нутриентов
         calorie_bar = user_data.generate_calorie_progress_bar(stats["calorie_percentage"])
@@ -180,11 +182,8 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
             f"🌱 Клетчатка: {stats.get('fiber', 0)}/{fiber_target}г\n{fiber_bar}\n"
         )
         
-        # Добавляем кнопку для просмотра всех нутриентов
+        # Используем улучшенную клавиатуру со всеми нутриентами
         keyboard = get_improved_stats_keyboard(stats)
-    
-    # Создаем клавиатуру для навигации по датам
-    keyboard = get_stats_keyboard(current_date)
     
     # Отправляем или редактируем сообщение
     try:
@@ -506,12 +505,29 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
     
     # Save data to user storage
     user_data = get_user_data(user_id)
+    
+    # Извлекаем данные о нутриентах, включая дополнительные
+    food_name = analysis.get('food_name', 'Неизвестное блюдо')
+    calories = analysis.get('calories', 0)
+    protein = analysis.get('protein', 0)
+    fat = analysis.get('fat', 0)
+    carbs = analysis.get('carbs', 0)
+    fiber = analysis.get('fiber', 0)
+    sugar = analysis.get('sugar', 0)
+    sodium = analysis.get('sodium', 0)
+    cholesterol = analysis.get('cholesterol', 0)
+    
+    # Добавляем запись со всеми нутриентами
     entry = user_data.add_food_entry(
-        food_name=analysis.get('food_name', 'Неизвестное блюдо'),
-        calories=analysis.get('calories', 0),
-        protein=analysis.get('protein', 0),
-        fat=analysis.get('fat', 0),
-        carbs=analysis.get('carbs', 0)
+        food_name=food_name,
+        calories=calories,
+        protein=protein,
+        fat=fat,
+        carbs=carbs,
+        fiber=fiber,
+        sugar=sugar,
+        sodium=sodium,
+        cholesterol=cholesterol
     )
     
     # Get updated stats
@@ -656,6 +672,76 @@ async def process_date_callback(callback_query: CallbackQuery):
     
     # Показываем статистику за выбранную дату
     await show_stats(callback_query=callback_query, current_date=target_date, edit_message=True)
+
+# Обработка нажатия на кнопку подробной информации обо всех нутриентах
+async def show_all_nutrients(callback_query: CallbackQuery):
+    """Show all nutrients details"""
+    user_id = callback_query.from_user.id
+    user_data = get_user_data(user_id)
+    
+    # Пытаемся получить дату из текста сообщения
+    message_text = callback_query.message.text
+    try:
+        # Ищем дату в формате DD.MM.YYYY в тексте сообщения
+        import re
+        date_match = re.search(r'(\d{2})\.(\d{2})\.(\d{4})', message_text)
+        if date_match:
+            day, month, year = map(int, date_match.groups())
+            current_date = date(year, month, day)
+        else:
+            current_date = user_data.get_current_date()
+    except Exception:
+        current_date = user_data.get_current_date()
+    
+    # Получаем статистику за день
+    stats = user_data.get_stats_by_date(current_date)
+    
+    # Получаем целевые значения всех нутриентов
+    protein_target = stats.get('protein_limit', 75) or 75
+    fat_target = stats.get('fat_limit', 60) or 60
+    carbs_target = stats.get('carbs_limit', 250) or 250
+    fiber_target = stats.get('fiber_limit', 30) or 30
+    sugar_target = stats.get('sugar_limit', 50) or 50
+    sodium_target = stats.get('sodium_limit', 2300) or 2300
+    cholesterol_target = stats.get('cholesterol_limit', 300) or 300
+    
+    # Создаем прогресс-бары для всех нутриентов
+    calorie_bar = user_data.generate_calorie_progress_bar(stats["calorie_percentage"])
+    protein_bar = user_data.generate_nutrient_progress_bar(stats["protein"], protein_target, "protein")
+    fat_bar = user_data.generate_nutrient_progress_bar(stats["fat"], fat_target, "fat")
+    carbs_bar = user_data.generate_nutrient_progress_bar(stats["carbs"], carbs_target, "carbs")
+    fiber_bar = user_data.generate_nutrient_progress_bar(stats.get("fiber", 0), fiber_target, "fiber")
+    sugar_bar = user_data.generate_nutrient_progress_bar(stats.get("sugar", 0), sugar_target, "sugar")
+    sodium_bar = user_data.generate_nutrient_progress_bar(stats.get("sodium", 0), sodium_target, "sodium")
+    cholesterol_bar = user_data.generate_nutrient_progress_bar(stats.get("cholesterol", 0), cholesterol_target, "cholesterol")
+    
+    # Формируем текст с информацией обо всех нутриентах
+    nutrients_text = (
+        f"📊 <b>Детальная сводка питания за {stats['date']}</b>\n\n"
+        f"Приёмов пищи: {stats['entries']}\n"
+        f"Калории: {stats['calories']}/{stats.get('calorie_limit', '—')} ккал\n"
+        f"{calorie_bar}\n\n"
+        f"<b>Макронутриенты:</b>\n"
+        f"🥩 Белки: {stats['protein']}/{protein_target}г\n{protein_bar}\n"
+        f"🧈 Жиры: {stats['fat']}/{fat_target}г\n{fat_bar}\n"
+        f"🍚 Углеводы: {stats['carbs']}/{carbs_target}г\n{carbs_bar}\n\n"
+        f"<b>Дополнительные нутриенты:</b>\n"
+        f"🌱 Клетчатка: {stats.get('fiber', 0)}/{fiber_target}г\n{fiber_bar}\n"
+        f"🟣 Сахар: {stats.get('sugar', 0)}/{sugar_target}г\n{sugar_bar}\n"
+        f"⚪ Натрий: {stats.get('sodium', 0)}/{sodium_target}мг\n{sodium_bar}\n"
+        f"🔴 Холестерин: {stats.get('cholesterol', 0)}/{cholesterol_target}мг\n{cholesterol_bar}\n"
+    )
+    
+    # Используем клавиатуру для всех нутриентов
+    keyboard = get_all_nutrients_keyboard(stats)
+    
+    # Отправляем или редактируем сообщение
+    await callback_query.message.edit_text(
+        nutrients_text, 
+        parse_mode="HTML", 
+        reply_markup=keyboard
+    )
+    await callback_query.answer()
 
 # Обработка нажатия на кнопку обновления статистики
 async def process_refresh_stats(callback_query: CallbackQuery):
