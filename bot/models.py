@@ -23,6 +23,9 @@ class User(Base):
     fat_limit = Column(Float, nullable=True)  # Дневной лимит жиров
     carbs_limit = Column(Float, nullable=True)  # Дневной лимит углеводов
     fiber_limit = Column(Float, nullable=True)  # Дневной лимит клетчатки
+    sugar_limit = Column(Float, nullable=True)  # Дневной лимит сахара
+    sodium_limit = Column(Float, nullable=True)  # Дневной лимит натрия (мг)
+    cholesterol_limit = Column(Float, nullable=True)  # Дневной лимит холестерина (мг)
     user_weight = Column(Float, nullable=True)  # Вес пользователя в кг
     body_fat_percentage = Column(Float, nullable=True)  # Процент жира в теле
     created_at = Column(DateTime, default=datetime.utcnow)

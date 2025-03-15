@@ -294,7 +294,8 @@ class DBUserData:
         finally:
             db.close()
 
-    def set_macros_limits(self, protein: float, fat: float, carbs: float, fiber: float = None) -> bool:
+    def set_macros_limits(self, protein: float, fat: float, carbs: float, fiber: float = None, 
+                       sugar: float = None, sodium: float = None, cholesterol: float = None) -> bool:
         """
         Установить дневные лимиты макронутриентов
 
@@ -303,6 +304,9 @@ class DBUserData:
             fat: Лимит жиров (г)
             carbs: Лимит углеводов (г)
             fiber: Лимит клетчатки (г)
+            sugar: Лимит сахара (г)
+            sodium: Лимит натрия (мг)
+            cholesterol: Лимит холестерина (мг)
 
         Returns:
             bool: Успешно ли установлены лимиты
@@ -314,8 +318,15 @@ class DBUserData:
         self.fat_limit = fat
         self.carbs_limit = carbs
 
+        # Устанавливаем дополнительные лимиты, если они заданы
         if fiber is not None and fiber > 0:
             self.fiber_limit = fiber
+        if sugar is not None and sugar > 0:
+            self.sugar_limit = sugar
+        if sodium is not None and sodium > 0:
+            self.sodium_limit = sodium
+        if cholesterol is not None and cholesterol > 0:
+            self.cholesterol_limit = cholesterol
 
         # Рассчитываем калории на основе КБЖУ
         calories = protein * 4 + fat * 9 + carbs * 4
@@ -330,8 +341,15 @@ class DBUserData:
                 user.carbs_limit = carbs
                 user.calorie_limit = int(calories)
 
+                # Обновляем дополнительные лимиты в базе данных
                 if fiber is not None and fiber > 0:
                     user.fiber_limit = fiber
+                if sugar is not None and sugar > 0:
+                    user.sugar_limit = sugar
+                if sodium is not None and sodium > 0:
+                    user.sodium_limit = sodium
+                if cholesterol is not None and cholesterol > 0:
+                    user.cholesterol_limit = cholesterol
 
                 db.commit()
                 return True
