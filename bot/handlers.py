@@ -888,6 +888,7 @@ def register_handlers(dp: Dispatcher):
     router.message.register(show_stats, F.text == "📊 Сводка питания")
     router.message.register(show_meals, F.text == "🍽️ Приемы пищи")
     router.message.register(show_settings, F.text == "⚙️ Настройки")
+    router.message.register(cmd_help, F.text == "ℹ️ Инструкция")
     
     # Photo handling - для любого состояния и без состояния
     router.message.register(process_photo, F.photo)

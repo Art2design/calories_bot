@@ -12,6 +12,9 @@ def get_main_keyboard():
         [
             KeyboardButton(text="🏠 Главное меню"),
             KeyboardButton(text="⚙️ Настройки")
+        ],
+        [
+            KeyboardButton(text="ℹ️ Инструкция")
         ]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, persistent=True)
