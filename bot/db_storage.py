@@ -230,6 +230,51 @@ class DBUserData:
         finally:
             db.close()
     
+    def update_food_entry(self, entry_id: int, fiber: float = None, sugar: float = None, 
+                          sodium: float = None, cholesterol: float = None) -> bool:
+        """
+        Обновить существующую запись о еде дополнительными нутриентами
+        
+        Args:
+            entry_id: ID записи
+            fiber: Клетчатка (г)
+            sugar: Сахар (г)
+            sodium: Натрий (мг)
+            cholesterol: Холестерин (мг)
+            
+        Returns:
+            bool: Успешно ли обновлена запись
+        """
+        db = get_db()
+        try:
+            # Находим запись
+            entry = db.query(FoodEntry).filter(
+                FoodEntry.id == entry_id,
+                FoodEntry.user_id == self.user_id
+            ).first()
+            
+            if not entry:
+                return False
+            
+            # Обновляем только переданные параметры
+            if fiber is not None:
+                entry.fiber = fiber
+            if sugar is not None:
+                entry.sugar = sugar
+            if sodium is not None:
+                entry.sodium = sodium
+            if cholesterol is not None:
+                entry.cholesterol = cholesterol
+            
+            db.commit()
+            return True
+        except SQLAlchemyError as e:
+            logger.error(f"Ошибка при обновлении записи о еде: {e}")
+            db.rollback()
+            return False
+        finally:
+            db.close()
+            
     def set_calorie_limit(self, limit: int) -> None:
         """Установить дневной лимит калорий"""
         if limit <= 0:

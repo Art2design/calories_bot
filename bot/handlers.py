@@ -8,7 +8,7 @@ from aiogram import Dispatcher, types, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Command, CommandStart, StateFilter
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.keyboards import (
@@ -18,7 +18,9 @@ from bot.keyboards import (
     get_meals_keyboard,
     get_meal_detail_keyboard,
     get_settings_keyboard,
-    get_timezone_keyboard
+    get_timezone_keyboard,
+    get_kbju_format_keyboard,
+    get_improved_stats_keyboard
 )
 from bot.db_storage import DBUserData, get_user_data
 from bot.openai_integration import analyze_food_image
@@ -876,6 +878,364 @@ async def back_to_settings(callback_query: CallbackQuery, state: FSMContext):
     
     # Показываем меню настроек
     await show_settings(callback_query=callback_query)
+    
+# Функция для выбора формата установки КБЖУ
+async def show_kbju_format_selection(callback_query: CallbackQuery, state: FSMContext):
+    """Show KBJU format selection screen"""
+    format_text = (
+        f"📊 <b>Настройка лимитов КБЖУ</b>\n\n"
+        f"Выберите способ установки лимитов белков, жиров и углеводов:\n\n"
+        f"<b>✍️ Ввести вручную</b> - установить каждое значение отдельно\n"
+        f"<b>🧮 Рассчитать по весу</b> - расчёт на основе вашего веса и % жира в теле"
+    )
+    
+    # Создаем клавиатуру с выбором формата
+    keyboard = get_kbju_format_keyboard()
+    
+    # Отправляем новое сообщение вместо редактирования
+    await callback_query.message.answer(format_text, parse_mode="HTML", reply_markup=keyboard)
+    
+    # Удаляем старое сообщение
+    try:
+        await callback_query.message.delete()
+    except Exception as e:
+        logger.warning(f"Не удалось удалить сообщение: {e}")
+    
+    await state.set_state(CalorieTrackerStates.waiting_for_kbju_format)
+    await callback_query.answer()
+
+# Функции для ручной установки КБЖУ
+async def set_manual_kbju(callback_query: CallbackQuery, state: FSMContext):
+    """Start manual KBJU limits setting"""
+    user_id = callback_query.from_user.id
+    user_data = get_user_data(user_id)
+    
+    # Получаем текущие значения
+    protein_limit = user_data.protein_limit
+    
+    protein_text = (
+        f"🥩 <b>Установка лимита белков</b>\n\n"
+        f"Текущий лимит: {protein_limit if protein_limit else 'не установлен'} г\n\n"
+        f"Введите новый дневной лимит белков в граммах:"
+    )
+    
+    # Отправляем новое сообщение
+    await callback_query.message.answer(protein_text, parse_mode="HTML")
+    
+    # Удаляем старое сообщение
+    try:
+        await callback_query.message.delete()
+    except Exception as e:
+        logger.warning(f"Не удалось удалить сообщение: {e}")
+    
+    await state.set_state(CalorieTrackerStates.waiting_for_protein_limit)
+    await callback_query.answer()
+
+# Функция для обработки ввода лимита белков
+async def process_protein_limit(message: Message, state: FSMContext):
+    """Process protein limit input"""
+    try:
+        protein = float(message.text.strip())
+        if protein <= 0:
+            raise ValueError("Limit must be positive")
+        
+        # Сохраняем во временное хранилище
+        await state.update_data(protein_limit=protein)
+        
+        # Запрашиваем лимит жиров
+        fat_text = (
+            f"🧈 <b>Установка лимита жиров</b>\n\n"
+            f"Введите дневной лимит жиров в граммах:"
+        )
+        
+        await message.answer(fat_text, parse_mode="HTML")
+        await state.set_state(CalorieTrackerStates.waiting_for_fat_limit)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для лимита белков (положительное число)."
+        )
+
+# Функция для обработки ввода лимита жиров
+async def process_fat_limit(message: Message, state: FSMContext):
+    """Process fat limit input"""
+    try:
+        fat = float(message.text.strip())
+        if fat <= 0:
+            raise ValueError("Limit must be positive")
+        
+        # Сохраняем во временное хранилище
+        state_data = await state.get_data()
+        await state.update_data(fat_limit=fat)
+        
+        # Запрашиваем лимит углеводов
+        carbs_text = (
+            f"🍚 <b>Установка лимита углеводов</b>\n\n"
+            f"Введите дневной лимит углеводов в граммах:"
+        )
+        
+        await message.answer(carbs_text, parse_mode="HTML")
+        await state.set_state(CalorieTrackerStates.waiting_for_carbs_limit)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для лимита жиров (положительное число)."
+        )
+
+# Функция для обработки ввода лимита углеводов
+async def process_carbs_limit(message: Message, state: FSMContext):
+    """Process carbs limit input"""
+    try:
+        carbs = float(message.text.strip())
+        if carbs <= 0:
+            raise ValueError("Limit must be positive")
+        
+        # Сохраняем во временное хранилище
+        await state.update_data(carbs_limit=carbs)
+        
+        # Запрашиваем лимит клетчатки (опционально)
+        fiber_text = (
+            f"🌱 <b>Установка лимита клетчатки</b>\n\n"
+            f"Введите дневной лимит клетчатки в граммах:\n"
+            f"(это необязательный параметр, введите 0, если не хотите устанавливать лимит)"
+        )
+        
+        await message.answer(fiber_text, parse_mode="HTML")
+        await state.set_state(CalorieTrackerStates.waiting_for_fiber_limit)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для лимита углеводов (положительное число)."
+        )
+
+# Функция для обработки ввода лимита клетчатки и сохранения всех лимитов
+async def process_fiber_limit(message: Message, state: FSMContext):
+    """Process fiber limit input and save all macros"""
+    try:
+        fiber = float(message.text.strip())
+        if fiber < 0:
+            raise ValueError("Limit must be non-negative")
+        
+        # Получаем все сохраненные лимиты
+        state_data = await state.get_data()
+        protein = state_data.get("protein_limit")
+        fat = state_data.get("fat_limit")
+        carbs = state_data.get("carbs_limit")
+        
+        if not protein or not fat or not carbs:
+            await message.answer(
+                "❌ Что-то пошло не так. Пожалуйста, повторите процесс установки лимитов КБЖУ."
+            )
+            await state.clear()
+            return
+        
+        # Устанавливаем лимиты КБЖУ
+        user_id = message.from_user.id
+        user_data = get_user_data(user_id)
+        
+        success = user_data.set_macros_limits(
+            protein=protein,
+            fat=fat,
+            carbs=carbs,
+            fiber=fiber if fiber > 0 else None
+        )
+        
+        if success:
+            # Рассчитываем калории из КБЖУ (4 ккал на грамм белка, 9 на грамм жира, 4 на грамм углеводов)
+            calculated_calories = round(protein * 4 + fat * 9 + carbs * 4)
+            
+            # Предлагаем обновить и лимит калорий тоже
+            update_calories_text = (
+                f"✅ <b>Лимиты КБЖУ успешно установлены!</b>\n\n"
+                f"🥩 Белки: {protein}г\n"
+                f"🧈 Жиры: {fat}г\n"
+                f"🍚 Углеводы: {carbs}г\n"
+                f"{f'🌱 Клетчатка: {fiber}г' if fiber > 0 else ''}\n\n"
+                f"Рассчитанный лимит калорий: {calculated_calories} ккал\n"
+                f"Хотите установить этот лимит калорий?"
+            )
+            
+            # Создаем клавиатуру для выбора
+            kb = [
+                [
+                    InlineKeyboardButton(text="✅ Да", callback_data=f"set_calc_calories:{calculated_calories}")
+                ],
+                [
+                    InlineKeyboardButton(text="❌ Нет", callback_data="back_to_settings")
+                ]
+            ]
+            keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
+            
+            await message.answer(update_calories_text, parse_mode="HTML", reply_markup=keyboard)
+            await state.clear()
+        else:
+            await message.answer(
+                "❌ Не удалось установить лимиты КБЖУ. Пожалуйста, попробуйте еще раз."
+            )
+            await state.clear()
+            await show_settings(message)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для лимита клетчатки (неотрицательное число)."
+        )
+
+# Функция для установки рассчитанного лимита калорий из КБЖУ
+async def set_calculated_calories(callback_query: CallbackQuery):
+    """Set calculated calories from KBJU"""
+    data_parts = callback_query.data.split(":")
+    if len(data_parts) != 2:
+        await callback_query.answer("Ошибка в формате данных")
+        return
+    
+    try:
+        calories = int(float(data_parts[1]))
+        
+        user_id = callback_query.from_user.id
+        user_data = get_user_data(user_id)
+        user_data.set_calorie_limit(calories)
+        
+        # Отправляем сообщение об успешной установке
+        await callback_query.message.answer(
+            f"✅ Лимит калорий установлен: <b>{calories} ккал</b>",
+            parse_mode="HTML"
+        )
+        
+        # Удаляем старое сообщение
+        try:
+            await callback_query.message.delete()
+        except Exception as e:
+            logger.warning(f"Не удалось удалить сообщение: {e}")
+        
+        await callback_query.answer()
+        await show_settings(callback_query=callback_query)
+        
+    except Exception as e:
+        logger.error(f"Ошибка при установке лимита калорий: {e}")
+        await callback_query.answer("Не удалось установить лимит калорий")
+
+# Функции для установки метрик тела
+async def set_body_metrics(callback_query: CallbackQuery, state: FSMContext):
+    """Start body metrics input process"""
+    user_id = callback_query.from_user.id
+    user_data = get_user_data(user_id)
+    
+    # Получаем текущие значения
+    weight = user_data.user_weight
+    
+    weight_text = (
+        f"⚖️ <b>Настройка веса</b>\n\n"
+        f"Текущий вес: {weight if weight else 'не установлен'} кг\n\n"
+        f"Введите ваш вес в килограммах:"
+    )
+    
+    # Отправляем новое сообщение
+    await callback_query.message.answer(weight_text, parse_mode="HTML")
+    
+    # Удаляем старое сообщение
+    try:
+        await callback_query.message.delete()
+    except Exception as e:
+        logger.warning(f"Не удалось удалить сообщение: {e}")
+    
+    await state.set_state(CalorieTrackerStates.waiting_for_weight)
+    await callback_query.answer()
+
+# Функция для обработки ввода веса
+async def process_weight(message: Message, state: FSMContext):
+    """Process weight input"""
+    try:
+        weight = float(message.text.strip())
+        if weight <= 0 or weight > 300:  # Разумные пределы веса
+            raise ValueError("Weight must be positive and realistic")
+        
+        # Сохраняем во временное хранилище
+        await state.update_data(weight=weight)
+        
+        # Запрашиваем процент жира
+        fat_text = (
+            f"📏 <b>Установка процента жира в теле</b>\n\n"
+            f"Введите процент жира в теле (число от 5 до 50):\n"
+            f"Примерные значения:\n"
+            f"- Мужчины: 10-25%\n"
+            f"- Женщины: 18-30%\n"
+            f"Если вы не знаете свой процент жира, введите примерное значение:"
+        )
+        
+        await message.answer(fat_text, parse_mode="HTML")
+        await state.set_state(CalorieTrackerStates.waiting_for_body_fat)
+        
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, введите корректное число для веса (от 30 до 300 кг)."
+        )
+
+# Функция для обработки ввода процента жира и расчета КБЖУ
+async def process_body_fat(message: Message, state: FSMContext):
+    """Process body fat percentage input and calculate macros"""
+    try:
+        body_fat = float(message.text.strip())
+        if body_fat < 5 or body_fat > 50:  # Разумные пределы процента жира
+            raise ValueError("Body fat must be between 5 and 50 percent")
+        
+        # Получаем вес из состояния
+        state_data = await state.get_data()
+        weight = state_data.get("weight")
+        
+        if not weight:
+            await message.answer(
+                "❌ Что-то пошло не так. Пожалуйста, повторите процесс ввода метрик тела."
+            )
+            await state.clear()
+            return
+        
+        # Устанавливаем метрики тела и рассчитываем рекомендуемые КБЖУ
+        user_id = message.from_user.id
+        user_data = get_user_data(user_id)
+        
+        success = user_data.set_user_body_metrics(weight=weight, body_fat=body_fat)
+        
+        if success:
+            # Получаем рассчитанные лимиты
+            today_stats = user_data.get_today_stats()
+            protein_limit = today_stats.get('protein_limit', 0)
+            fat_limit = today_stats.get('fat_limit', 0)
+            carbs_limit = today_stats.get('carbs_limit', 0)
+            calorie_limit = today_stats.get('calorie_limit', 0)
+            
+            metrics_text = (
+                f"✅ <b>Метрики тела и лимиты установлены!</b>\n\n"
+                f"⚖️ Вес: {weight} кг\n"
+                f"📏 Процент жира: {body_fat}%\n\n"
+                f"📊 <b>Рассчитанные лимиты:</b>\n"
+                f"🔥 Калории: {calorie_limit} ккал\n"
+                f"🥩 Белки: {protein_limit}г\n"
+                f"🧈 Жиры: {fat_limit}г\n"
+                f"🍚 Углеводы: {carbs_limit}г\n\n"
+                f"Лимиты были рассчитаны на основе вашего веса и состава тела."
+            )
+            
+            await message.answer(metrics_text, parse_mode="HTML")
+            await state.clear()
+            await show_settings(message)
+        else:
+            await message.answer(
+                "❌ Не удалось установить метрики тела. Пожалуйста, попробуйте еще раз."
+            )
+            await state.clear()
+            await show_settings(message)
+        
+    except ValueError as e:
+        await message.answer(
+            f"❌ Пожалуйста, введите корректное число для процента жира (от 5 до 50)."
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при обработке метрик тела: {e}")
+        await message.answer(
+            "❌ Произошла ошибка. Пожалуйста, попробуйте еще раз."
+        )
+        await state.clear()
+        await show_settings(message)
 
 # Регистрация обработчиков
 def register_handlers(dp: Dispatcher):
