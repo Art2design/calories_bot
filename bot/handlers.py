@@ -1564,6 +1564,8 @@ def register_handlers(dp: Dispatcher):
     # Callback query handlers - stats navigation
     router.callback_query.register(process_date_callback, F.data.startswith("date:"))
     router.callback_query.register(process_refresh_stats, F.data == "refresh_stats")
+    router.callback_query.register(show_all_nutrients, F.data == "all_nutrients")
+    router.callback_query.register(show_stats, F.data == "back_to_stats")
     
     # Callback query handlers - meals list
     router.callback_query.register(process_meal_info, F.data.startswith("meal_info:"))
