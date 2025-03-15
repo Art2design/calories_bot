@@ -205,3 +205,48 @@ def get_improved_stats_keyboard(stats, width=8):
         kb.append(row)
     
     return InlineKeyboardMarkup(inline_keyboard=kb)
+
+def get_all_nutrients_keyboard(stats):
+    """Return keyboard with detailed information about all nutrients"""
+    kb = [
+        [
+            InlineKeyboardButton(text="🔙 Вернуться к статистике", callback_data="back_to_stats")
+        ]
+    ]
+    
+    # Добавляем кнопки для навигации по датам
+    date_keyboard = get_stats_keyboard(stats.get("date"))
+    for row in date_keyboard.inline_keyboard:
+        kb.append(row)
+    
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+
+def get_macros_settings_keyboard():
+    """Return keyboard for macros settings with additional nutrients"""
+    kb = [
+        [
+            InlineKeyboardButton(text="💪 Белки", callback_data="set_protein")
+        ],
+        [
+            InlineKeyboardButton(text="🍗 Жиры", callback_data="set_fat")
+        ],
+        [
+            InlineKeyboardButton(text="🍚 Углеводы", callback_data="set_carbs")
+        ],
+        [
+            InlineKeyboardButton(text="🥗 Клетчатка", callback_data="set_fiber")
+        ],
+        [
+            InlineKeyboardButton(text="🍬 Сахар", callback_data="set_sugar")
+        ],
+        [
+            InlineKeyboardButton(text="🧂 Натрий", callback_data="set_sodium")
+        ],
+        [
+            InlineKeyboardButton(text="🥚 Холестерин", callback_data="set_cholesterol")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_settings")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=kb)

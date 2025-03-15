@@ -388,9 +388,20 @@ class DBUserData:
         fat = round(weight * 1, 1)  # 1г жира на кг веса
         carbs = round(weight * 3, 1)  # 3г углеводов на кг веса
         fiber = round(weight * 0.3, 1)  # 0.3г клетчатки на кг веса
+        sugar = round(weight * 0.5, 1)  # 0.5г сахара на кг веса (лимит)
+        sodium = round(weight * 20, 1)  # 20мг натрия на кг веса
+        cholesterol = round(weight * 3, 1)  # 3мг холестерина на кг веса
 
         # Устанавливаем рассчитанные лимиты
-        self.set_macros_limits(protein, fat, carbs, fiber)
+        self.set_macros_limits(
+            protein=protein, 
+            fat=fat, 
+            carbs=carbs, 
+            fiber=fiber,
+            sugar=sugar,
+            sodium=sodium,
+            cholesterol=cholesterol
+        )
 
         db = get_db()
         try:
@@ -487,6 +498,19 @@ class DBUserData:
             fiber_percentage = 0
             if self.fiber_limit and self.fiber_limit > 0:
                 fiber_percentage = min(100, (fiber / self.fiber_limit) * 100)
+                
+            # Рассчитываем проценты для дополнительных нутриентов
+            sugar_percentage = 0
+            if hasattr(self, 'sugar_limit') and self.sugar_limit and self.sugar_limit > 0:
+                sugar_percentage = min(100, (sugar / self.sugar_limit) * 100)
+                
+            sodium_percentage = 0
+            if hasattr(self, 'sodium_limit') and self.sodium_limit and self.sodium_limit > 0:
+                sodium_percentage = min(100, (sodium / self.sodium_limit) * 100)
+                
+            cholesterol_percentage = 0
+            if hasattr(self, 'cholesterol_limit') and self.cholesterol_limit and self.cholesterol_limit > 0:
+                cholesterol_percentage = min(100, (cholesterol / self.cholesterol_limit) * 100)
 
             return {
                 "date": target_date.strftime("%d.%m.%Y"),
@@ -506,13 +530,19 @@ class DBUserData:
                 "fat_limit": self.fat_limit,
                 "carbs_limit": self.carbs_limit,
                 "fiber_limit": self.fiber_limit,
+                "sugar_limit": getattr(self, 'sugar_limit', None),
+                "sodium_limit": getattr(self, 'sodium_limit', None),
+                "cholesterol_limit": getattr(self, 'cholesterol_limit', None),
 
                 # Проценты выполнения
                 "calorie_percentage": round(calorie_percentage, 1),
                 "protein_percentage": round(protein_percentage, 1),
                 "fat_percentage": round(fat_percentage, 1),
                 "carbs_percentage": round(carbs_percentage, 1),
-                "fiber_percentage": round(fiber_percentage, 1)
+                "fiber_percentage": round(fiber_percentage, 1),
+                "sugar_percentage": round(sugar_percentage, 1),
+                "sodium_percentage": round(sodium_percentage, 1),
+                "cholesterol_percentage": round(cholesterol_percentage, 1)
             }
         except SQLAlchemyError as e:
             logger.error(f"Ошибка при получении статистики: {e}")
@@ -534,13 +564,19 @@ class DBUserData:
                 "fat_limit": self.fat_limit,
                 "carbs_limit": self.carbs_limit,
                 "fiber_limit": self.fiber_limit,
+                "sugar_limit": getattr(self, 'sugar_limit', None),
+                "sodium_limit": getattr(self, 'sodium_limit', None),
+                "cholesterol_limit": getattr(self, 'cholesterol_limit', None),
 
                 # Проценты выполнения
                 "calorie_percentage": 0,
                 "protein_percentage": 0,
                 "fat_percentage": 0,
                 "carbs_percentage": 0,
-                "fiber_percentage": 0
+                "fiber_percentage": 0,
+                "sugar_percentage": 0,
+                "sodium_percentage": 0,
+                "cholesterol_percentage": 0
             }
         finally:
             db.close()
@@ -656,27 +692,37 @@ class DBUserData:
 
     def generate_nutrient_progress_bar(self, value: float, target: float | None, nutrient_type: str, width: int = 10) -> str:
         """
-        Generate a text progress bar for nutrient consumption (protein, fat, carbs)
+        Generate a text progress bar for nutrient consumption
 
         Args:
             value: Current amount of nutrient consumed
             target: Target amount of nutrient
-            nutrient_type: Type of nutrient ('protein', 'fat', 'carbs')
+            nutrient_type: Type of nutrient ('protein', 'fat', 'carbs', 'fiber', 'sugar', 'sodium', 'cholesterol')
             width: Width of the progress bar
 
         Returns:
             Formatted progress bar string with percentage
         """
         if target is None or target <= 0:
-            # Если цель не установлена, используем стандартные значения
+            # Если цель не установлена, используем стандартные значения в зависимости от типа нутриента
             if nutrient_type == "protein":
                 target = 75  # 75г белка - стандартная рекомендация
             elif nutrient_type == "fat":
                 target = 60  # 60г жиров - стандартная рекомендация
             elif nutrient_type == "carbs":
                 target = 250  # 250г углеводов - стандартная рекомендация
+            elif nutrient_type == "fiber":
+                target = 25  # 25г клетчатки - стандартная рекомендация
+            elif nutrient_type == "sugar":
+                target = 50  # 50г сахара - верхний предел по рекомендациям ВОЗ
+            elif nutrient_type == "sodium":
+                target = 2300  # 2300мг натрия - рекомендация ВОЗ
+            elif nutrient_type == "cholesterol":
+                target = 300  # 300мг холестерина - стандартная рекомендация
 
-        percentage = min(100, int(value / target * 100)) if target > 0 else 0
+        # Рассчитываем процент выполнения
+        target_value = float(target) if target else 0
+        percentage = min(100, int(value / target_value * 100)) if target_value > 0 else 0
         filled_chars = min(int(percentage / 100 * width), width)
         empty_chars = width - filled_chars
 
@@ -687,6 +733,14 @@ class DBUserData:
             bar_char = "🟡"  # Жёлтый для жиров
         elif nutrient_type == "carbs":
             bar_char = "🟠"  # Оранжевый для углеводов
+        elif nutrient_type == "fiber":
+            bar_char = "🟢"  # Зелёный для клетчатки
+        elif nutrient_type == "sugar":
+            bar_char = "🟣"  # Фиолетовый для сахара
+        elif nutrient_type == "sodium":
+            bar_char = "⚪"  # Белый для натрия
+        elif nutrient_type == "cholesterol":
+            bar_char = "🔴"  # Красный для холестерина
         else:
             bar_char = "⬛"  # Чёрный для неизвестного типа
 
