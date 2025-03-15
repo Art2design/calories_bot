@@ -898,7 +898,7 @@ def register_handlers(dp: Dispatcher):
     # Callback query handlers - main menu
     router.callback_query.register(show_stats, F.data == "show_stats")
     router.callback_query.register(show_meals, F.data == "show_meals")
-    router.callback_query.register(show_settings, F.data == "show_settings")
+    router.callback_query.register(show_settings, F.data == "settings")
     router.callback_query.register(show_main_menu, F.data == "back_to_main")
     
     # Callback query handlers - food confirmation

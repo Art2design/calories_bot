@@ -183,7 +183,7 @@ def get_main_menu_inline_keyboard():
             InlineKeyboardButton(text="🍽️ Приемы пищи", callback_data="show_meals")
         ],
         [
-            InlineKeyboardButton(text="⚙️ Настройки", callback_data="show_settings")
+            InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings")
         ]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
