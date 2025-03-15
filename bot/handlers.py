@@ -449,7 +449,15 @@ async def set_calorie_limit(callback_query: CallbackQuery, state: FSMContext):
         f"Введите новый дневной лимит калорий (число):"
     )
     
-    await callback_query.message.edit_text(limit_text, parse_mode="HTML")
+    # Отправляем новое сообщение вместо редактирования
+    await callback_query.message.answer(limit_text, parse_mode="HTML")
+    
+    # Удаляем старое сообщение
+    try:
+        await callback_query.message.delete()
+    except Exception as e:
+        logger.warning(f"Не удалось удалить сообщение: {e}")
+    
     await state.set_state(CalorieTrackerStates.waiting_for_calorie_limit)
     await callback_query.answer()
 
@@ -463,10 +471,14 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
     analysis = state_data.get("analysis")
     
     if not analysis:
-        await callback_query.message.edit_text(
-            "😔 Произошла ошибка. Пожалуйста, попробуйте снова сфотографировать еду.",
-            reply_markup=None
+        # Отправляем новое сообщение вместо редактирования текущего
+        await callback_query.message.answer(
+            "😔 Произошла ошибка. Пожалуйста, попробуйте снова сфотографировать еду."
         )
+        try:
+            await callback_query.message.delete()
+        except Exception as e:
+            logger.warning(f"Не удалось удалить сообщение: {e}")
         await state.clear()
         await callback_query.answer()
         return
@@ -509,24 +521,18 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
         f"🍚 Углеводы: {today_stats['carbs']}г\n{carbs_bar}\n"
     )
     
+    # Всегда отправляем новое сообщение вместо редактирования
+    await callback_query.message.answer(
+        f"{confirm_text}\n\nЧто хотите сделать дальше?",
+        parse_mode="HTML",
+        reply_markup=get_main_menu_inline_keyboard()
+    )
+    
+    # Удаляем старое сообщение
     try:
-        # Отправляем сообщение с подтверждением и добавляем меню с действиями
-        await callback_query.message.edit_text(
-            f"{confirm_text}\n\nЧто хотите сделать дальше?",
-            parse_mode="HTML",
-            reply_markup=get_main_menu_inline_keyboard()
-        )
+        await callback_query.message.delete()
     except Exception as e:
-        logger.error(f"Ошибка при отображении подтверждения: {e}")
-        try:
-            # Если редактирование не удалось, отправляем новое сообщение
-            await callback_query.message.answer(confirm_text, parse_mode="HTML")
-            await callback_query.message.answer(
-                "Что хотите сделать дальше?",
-                reply_markup=get_main_menu_inline_keyboard()
-            )
-        except:
-            pass
+        logger.warning(f"Не удалось удалить сообщение: {e}")
     
     await state.clear()
     await callback_query.answer()
@@ -536,21 +542,18 @@ async def process_cancel(callback_query: CallbackQuery, state: FSMContext):
     """Cancel current operation"""
     await state.clear()
     
+    # Всегда отправляем новое сообщение вместо редактирования
+    await callback_query.message.answer(
+        "❌ Операция отменена.\n\nЧто хотите сделать дальше?",
+        parse_mode="HTML",
+        reply_markup=get_main_menu_inline_keyboard()
+    )
+    
+    # Удаляем старое сообщение
     try:
-        # Показываем меню с действиями, редактируя текущее сообщение
-        await callback_query.message.edit_text(
-            "❌ Операция отменена.\n\nЧто хотите сделать дальше?",
-            parse_mode="HTML",
-            reply_markup=get_main_menu_inline_keyboard()
-        )
+        await callback_query.message.delete()
     except Exception as e:
-        logger.error(f"Error editing message: {e}")
-        # Если не удалось, отправляем новое
-        await callback_query.message.answer(
-            "❌ Операция отменена.\n\nЧто хотите сделать дальше?",
-            parse_mode="HTML",
-            reply_markup=get_main_menu_inline_keyboard()
-        )
+        logger.warning(f"Не удалось удалить сообщение: {e}")
     
     # Подтверждаем обработку callback
     await callback_query.answer()
@@ -806,7 +809,15 @@ async def show_timezone_selection(callback_query: CallbackQuery, state: FSMConte
     # Создаем клавиатуру с выбором часовых поясов
     keyboard = get_timezone_keyboard(current_timezone)
     
-    await callback_query.message.edit_text(timezone_text, parse_mode="HTML", reply_markup=keyboard)
+    # Отправляем новое сообщение вместо редактирования
+    await callback_query.message.answer(timezone_text, parse_mode="HTML", reply_markup=keyboard)
+    
+    # Удаляем старое сообщение
+    try:
+        await callback_query.message.delete()
+    except Exception as e:
+        logger.warning(f"Не удалось удалить сообщение: {e}")
+    
     await state.set_state(CalorieTrackerStates.waiting_for_timezone)
     await callback_query.answer()
 
@@ -870,14 +881,17 @@ async def back_to_settings(callback_query: CallbackQuery, state: FSMContext):
     """Return from timezone selection to settings"""
     await state.clear()
     
+    # Отправляем новое сообщение вместо редактирования
+    await callback_query.message.answer("Возвращаемся в настройки...")
+    
+    # Удаляем старое сообщение
     try:
-        # Показываем меню настроек, редактируя текущее сообщение
-        await show_settings(callback_query=callback_query)
+        await callback_query.message.delete()
     except Exception as e:
-        logger.error(f"Error editing message: {e}")
-        # Если не удается отредактировать, отправляем новое
-        await callback_query.message.answer("Возвращаемся в настройки...")
-        await show_settings(callback_query=callback_query)
+        logger.warning(f"Не удалось удалить сообщение: {e}")
+    
+    # Показываем меню настроек
+    await show_settings(callback_query=callback_query)
 
 # Регистрация обработчиков
 def register_handlers(dp: Dispatcher):
