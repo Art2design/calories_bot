@@ -42,6 +42,12 @@ class DBUserData:
         """Инициализация данных пользователя, загрузка из базы или создание новой записи"""
         self.user_id = user_id
         self.calorie_limit = None
+        self.protein_limit = None
+        self.fat_limit = None
+        self.carbs_limit = None
+        self.fiber_limit = None
+        self.user_weight = None
+        self.body_fat_percentage = None
         self.timezone_code = "МСК"
         self.load_from_db()
     
@@ -52,6 +58,12 @@ class DBUserData:
             user = db.query(User).filter(User.id == self.user_id).first()
             if user:
                 self.calorie_limit = user.calorie_limit
+                self.protein_limit = user.protein_limit
+                self.fat_limit = user.fat_limit
+                self.carbs_limit = user.carbs_limit
+                self.fiber_limit = user.fiber_limit
+                self.user_weight = user.user_weight
+                self.body_fat_percentage = user.body_fat_percentage
                 self.timezone_code = user.timezone_code
             else:
                 # Создаем нового пользователя
@@ -156,7 +168,8 @@ class DBUserData:
         else:
             return f"UTC{sign}{int(hours)}:{int(minutes):02d}"
     
-    def add_food_entry(self, food_name: str, calories: float, protein: float, fat: float, carbs: float) -> Dict[str, Any]:
+    def add_food_entry(self, food_name: str, calories: float, protein: float, fat: float, carbs: float, 
+                      fiber: float = 0, sugar: float = 0, sodium: float = 0, cholesterol: float = 0) -> Dict[str, Any]:
         """
         Добавить новую запись о еде и вернуть её
         
@@ -166,6 +179,10 @@ class DBUserData:
             protein: Белки (г)
             fat: Жиры (г)
             carbs: Углеводы (г)
+            fiber: Клетчатка (г)
+            sugar: Сахар (г)
+            sodium: Натрий (мг)
+            cholesterol: Холестерин (мг)
             
         Returns:
             Словарь с данными о созданной записи
@@ -182,6 +199,10 @@ class DBUserData:
                 protein=protein,
                 fat=fat,
                 carbs=carbs,
+                fiber=fiber,
+                sugar=sugar,
+                sodium=sodium,
+                cholesterol=cholesterol,
                 timestamp=current_time
             )
             
@@ -200,6 +221,10 @@ class DBUserData:
                 "protein": protein,
                 "fat": fat,
                 "carbs": carbs,
+                "fiber": fiber,
+                "sugar": sugar,
+                "sodium": sodium,
+                "cholesterol": cholesterol,
                 "timestamp": current_time.isoformat()
             }
         finally:
@@ -221,6 +246,102 @@ class DBUserData:
         except SQLAlchemyError as e:
             logger.error(f"Ошибка при установке лимита калорий: {e}")
             db.rollback()
+        finally:
+            db.close()
+            
+    def set_macros_limits(self, protein: float, fat: float, carbs: float, fiber: float = None) -> bool:
+        """
+        Установить дневные лимиты макронутриентов
+        
+        Args:
+            protein: Лимит белков (г)
+            fat: Лимит жиров (г)
+            carbs: Лимит углеводов (г)
+            fiber: Лимит клетчатки (г)
+            
+        Returns:
+            bool: Успешно ли установлены лимиты
+        """
+        if protein <= 0 or fat <= 0 or carbs <= 0:
+            return False
+            
+        self.protein_limit = protein
+        self.fat_limit = fat
+        self.carbs_limit = carbs
+        
+        if fiber is not None and fiber > 0:
+            self.fiber_limit = fiber
+            
+        # Рассчитываем калории на основе КБЖУ
+        calories = protein * 4 + fat * 9 + carbs * 4
+        self.calorie_limit = int(calories)
+        
+        db = get_db()
+        try:
+            user = db.query(User).filter(User.id == self.user_id).first()
+            if user:
+                user.protein_limit = protein
+                user.fat_limit = fat
+                user.carbs_limit = carbs
+                user.calorie_limit = int(calories)
+                
+                if fiber is not None and fiber > 0:
+                    user.fiber_limit = fiber
+                    
+                db.commit()
+                return True
+            return False
+        except SQLAlchemyError as e:
+            logger.error(f"Ошибка при установке лимита макронутриентов: {e}")
+            db.rollback()
+            return False
+        finally:
+            db.close()
+            
+    def set_user_body_metrics(self, weight: float, body_fat: float) -> bool:
+        """
+        Установить метрики тела пользователя и рассчитать рекомендуемые значения КБЖУ
+        
+        Args:
+            weight: Вес в кг
+            body_fat: Процент жира в теле (0-100)
+            
+        Returns:
+            bool: Успешно ли установлены метрики
+        """
+        if weight <= 0 or body_fat < 0 or body_fat > 100:
+            return False
+            
+        self.user_weight = weight
+        self.body_fat_percentage = body_fat
+        
+        # Рассчитываем лимиты макронутриентов на основе веса и % жира
+        # Простой алгоритм:
+        # Расчет безжировой массы тела (LBM)
+        lean_body_mass = weight * (1 - body_fat / 100)
+        
+        # Расчет целевых значений
+        protein = round(lean_body_mass * 2, 1)  # 2г белка на кг LBM
+        fat = round(weight * 1, 1)  # 1г жира на кг веса
+        carbs = round(weight * 3, 1)  # 3г углеводов на кг веса
+        fiber = round(weight * 0.3, 1)  # 0.3г клетчатки на кг веса
+        
+        # Устанавливаем рассчитанные лимиты
+        self.set_macros_limits(protein, fat, carbs, fiber)
+        
+        db = get_db()
+        try:
+            user = db.query(User).filter(User.id == self.user_id).first()
+            if user:
+                user.user_weight = weight
+                user.body_fat_percentage = body_fat
+                db.commit()
+                return True
+            return False
+        except SQLAlchemyError as e:
+            logger.error(f"Ошибка при установке метрик тела: {e}")
+            db.rollback()
+            return False
         finally:
             db.close()
     
@@ -262,7 +383,11 @@ class DBUserData:
                 func.sum(FoodEntry.calories).label("calories"),
                 func.sum(FoodEntry.protein).label("protein"),
                 func.sum(FoodEntry.fat).label("fat"),
-                func.sum(FoodEntry.carbs).label("carbs")
+                func.sum(FoodEntry.carbs).label("carbs"),
+                func.sum(FoodEntry.fiber).label("fiber"),
+                func.sum(FoodEntry.sugar).label("sugar"),
+                func.sum(FoodEntry.sodium).label("sodium"),
+                func.sum(FoodEntry.cholesterol).label("cholesterol")
             ).filter(
                 FoodEntry.user_id == self.user_id,
                 FoodEntry.timestamp >= target_start_utc,
@@ -274,11 +399,31 @@ class DBUserData:
             protein = stats[2] or 0
             fat = stats[3] or 0
             carbs = stats[4] or 0
+            fiber = stats[5] or 0
+            sugar = stats[6] or 0
+            sodium = stats[7] or 0
+            cholesterol = stats[8] or 0
             
-            # Вычисляем процент от дневного лимита калорий
+            # Вычисляем проценты от лимитов
             calorie_percentage = 0
             if self.calorie_limit and self.calorie_limit > 0:
                 calorie_percentage = min(100, (calories / self.calorie_limit) * 100)
+            
+            protein_percentage = 0
+            if self.protein_limit and self.protein_limit > 0:
+                protein_percentage = min(100, (protein / self.protein_limit) * 100)
+                
+            fat_percentage = 0
+            if self.fat_limit and self.fat_limit > 0:
+                fat_percentage = min(100, (fat / self.fat_limit) * 100)
+                
+            carbs_percentage = 0
+            if self.carbs_limit and self.carbs_limit > 0:
+                carbs_percentage = min(100, (carbs / self.carbs_limit) * 100)
+                
+            fiber_percentage = 0
+            if self.fiber_limit and self.fiber_limit > 0:
+                fiber_percentage = min(100, (fiber / self.fiber_limit) * 100)
             
             return {
                 "date": target_date.strftime("%d.%m.%Y"),
@@ -287,8 +432,24 @@ class DBUserData:
                 "protein": round(protein, 1),
                 "fat": round(fat, 1),
                 "carbs": round(carbs, 1),
+                "fiber": round(fiber, 1),
+                "sugar": round(sugar, 1),
+                "sodium": round(sodium, 1),
+                "cholesterol": round(cholesterol, 1),
+                
+                # Лимиты
                 "calorie_limit": self.calorie_limit,
-                "calorie_percentage": round(calorie_percentage, 1)
+                "protein_limit": self.protein_limit,
+                "fat_limit": self.fat_limit,
+                "carbs_limit": self.carbs_limit,
+                "fiber_limit": self.fiber_limit,
+                
+                # Проценты выполнения
+                "calorie_percentage": round(calorie_percentage, 1),
+                "protein_percentage": round(protein_percentage, 1),
+                "fat_percentage": round(fat_percentage, 1),
+                "carbs_percentage": round(carbs_percentage, 1),
+                "fiber_percentage": round(fiber_percentage, 1)
             }
         except SQLAlchemyError as e:
             logger.error(f"Ошибка при получении статистики: {e}")
@@ -299,8 +460,24 @@ class DBUserData:
                 "protein": 0,
                 "fat": 0,
                 "carbs": 0,
+                "fiber": 0,
+                "sugar": 0,
+                "sodium": 0,
+                "cholesterol": 0,
+                
+                # Лимиты
                 "calorie_limit": self.calorie_limit,
-                "calorie_percentage": 0
+                "protein_limit": self.protein_limit,
+                "fat_limit": self.fat_limit,
+                "carbs_limit": self.carbs_limit,
+                "fiber_limit": self.fiber_limit,
+                
+                # Проценты выполнения
+                "calorie_percentage": 0,
+                "protein_percentage": 0,
+                "fat_percentage": 0,
+                "carbs_percentage": 0,
+                "fiber_percentage": 0
             }
         finally:
             db.close()

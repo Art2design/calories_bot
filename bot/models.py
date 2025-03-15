@@ -19,6 +19,12 @@ class User(Base):
     id = Column(Integer, primary_key=True)  # Telegram ID пользователя
     timezone_code = Column(String, default="МСК")  # Часовой пояс пользователя
     calorie_limit = Column(Integer, nullable=True)  # Дневной лимит калорий
+    protein_limit = Column(Float, nullable=True)  # Дневной лимит белков
+    fat_limit = Column(Float, nullable=True)  # Дневной лимит жиров
+    carbs_limit = Column(Float, nullable=True)  # Дневной лимит углеводов
+    fiber_limit = Column(Float, nullable=True)  # Дневной лимит клетчатки
+    user_weight = Column(Float, nullable=True)  # Вес пользователя в кг
+    body_fat_percentage = Column(Float, nullable=True)  # Процент жира в теле
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -39,6 +45,10 @@ class FoodEntry(Base):
     protein = Column(Float, default=0)
     fat = Column(Float, default=0)
     carbs = Column(Float, default=0)
+    fiber = Column(Float, default=0)  # Клетчатка
+    sugar = Column(Float, default=0)  # Сахар
+    sodium = Column(Float, default=0)  # Натрий (в мг)
+    cholesterol = Column(Float, default=0)  # Холестерин (в мг)
     timestamp = Column(DateTime, default=datetime.utcnow)
     
     # Отношение "многие-к-одному" с пользователем
@@ -56,6 +66,10 @@ class FoodEntry(Base):
             "protein": self.protein,
             "fat": self.fat,
             "carbs": self.carbs,
+            "fiber": self.fiber,
+            "sugar": self.sugar,
+            "sodium": self.sodium,
+            "cholesterol": self.cholesterol,
             "timestamp": self.timestamp.isoformat()
         }
 
