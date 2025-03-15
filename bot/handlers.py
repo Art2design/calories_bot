@@ -129,6 +129,16 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
         fat_target = stats.get('fat_limit', 60)
         carbs_target = stats.get('carbs_limit', 250)
         fiber_target = stats.get('fiber_limit', 30)
+
+        if protein_target == None:
+            protein_target = 0
+        if carbs_target == None:
+            carbs_target = 0
+        if fat_target == None:
+            fat_target = 0
+        if fiber_target == None:
+            fiber_target = 0
+        
         
         # Создаем прогресс-бары с текущими/целевыми значениями
         protein_bar = user_data.generate_nutrient_progress_bar(stats["protein"], protein_target, "protein")
@@ -492,6 +502,15 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
     fat_target = today_stats.get('fat_limit', 60)
     carbs_target = today_stats.get('carbs_limit', 250)
     fiber_target = today_stats.get('fiber_limit', 30)
+
+    if protein_target == None:
+        protein_target = 0
+    if carbs_target == None:
+        carbs_target = 0
+    if fat_target == None:
+        fat_target = 0
+    if fiber_target == None:
+        fiber_target = 0
     
     # Create progress bars with current/target values
     calorie_bar = user_data.generate_calorie_progress_bar(today_stats["calorie_percentage"])
