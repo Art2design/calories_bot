@@ -1,5 +1,5 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from bot.storage import AVAILABLE_TIMEZONES
 
 def get_main_keyboard():
@@ -32,6 +32,12 @@ def get_stats_keyboard(current_date=None):
     """Return inline keyboard for nutrition stats with date navigation"""
     if current_date is None:
         current_date = date.today()
+    elif isinstance(current_date, str):
+        # Если дата передана как строка, преобразуем её в объект date
+        try:
+            current_date = datetime.strptime(current_date, "%Y-%m-%d").date()
+        except ValueError:
+            current_date = date.today()
     
     prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
     today = date.today()

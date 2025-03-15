@@ -1303,9 +1303,9 @@ async def process_cholesterol_limit(message: Message, state: FSMContext):
             protein=protein,
             fat=fat,
             carbs=carbs,
-            fiber=fiber if fiber > 0 else None,
-            sugar=sugar if sugar > 0 else None,
-            sodium=sodium if sodium > 0 else None,
+            fiber=fiber if fiber else None,
+            sugar=sugar if sugar else None,
+            sodium=sodium if sodium else None,
             cholesterol=cholesterol if cholesterol > 0 else None
         )
         

@@ -294,8 +294,9 @@ class DBUserData:
         finally:
             db.close()
 
-    def set_macros_limits(self, protein: float, fat: float, carbs: float, fiber: float = None, 
-                       sugar: float = None, sodium: float = None, cholesterol: float = None) -> bool:
+    def set_macros_limits(self, protein: float, fat: float, carbs: float, fiber: Optional[float] = None, 
+                       sugar: Optional[float] = None, sodium: Optional[float] = None, 
+                       cholesterol: Optional[float] = None) -> bool:
         """
         Установить дневные лимиты макронутриентов
 
@@ -319,13 +320,14 @@ class DBUserData:
         self.carbs_limit = carbs
 
         # Устанавливаем дополнительные лимиты, если они заданы
-        if fiber is not None and fiber > 0:
+        # Не используем проверку > 0, т.к. это приводит к ошибке, если fiber is None
+        if fiber is not None:
             self.fiber_limit = fiber
-        if sugar is not None and sugar > 0:
+        if sugar is not None:
             self.sugar_limit = sugar
-        if sodium is not None and sodium > 0:
+        if sodium is not None:
             self.sodium_limit = sodium
-        if cholesterol is not None and cholesterol > 0:
+        if cholesterol is not None:
             self.cholesterol_limit = cholesterol
 
         # Рассчитываем калории на основе КБЖУ
