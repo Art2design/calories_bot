@@ -247,29 +247,24 @@ async def show_main_menu(message: Message = None, callback_query: CallbackQuery 
                 f"• Приёмов пищи: {today_stats['entries']}\n\n"
             )
         
+        menu_text = (
+            f"🏠 <b>Главное меню</b>\n\n"
+            f"{stats_text}"
+            f"Отправьте фото еды для анализа или выберите действие:"
+        )
+        
+        # Всегда отправляем новое сообщение вместо редактирования
+        await callback_query.message.answer(
+            menu_text,
+            parse_mode="HTML",
+            reply_markup=get_main_menu_inline_keyboard()
+        )
+        # Удаляем старое сообщение
         try:
-            await callback_query.message.edit_text(
-                f"🏠 <b>Главное меню</b>\n\n"
-                f"{stats_text}"
-                f"Отправьте фото еды для анализа или выберите действие:",
-                parse_mode="HTML",
-                reply_markup=get_main_menu_inline_keyboard()
-            )
-            await callback_query.answer()
-        except Exception as e:
-            logger.error(f"Ошибка при отображении главного меню через callback: {e}")
-            try:
-                # Если не удалось отредактировать, отправляем новое сообщение
-                await callback_query.message.answer(
-                    f"🏠 <b>Главное меню</b>\n\n"
-                    f"{stats_text}"
-                    f"Отправьте фото еды для анализа или выберите действие:",
-                    parse_mode="HTML",
-                    reply_markup=get_main_menu_inline_keyboard()
-                )
-                await callback_query.answer("Открываю главное меню...")
-            except Exception as e2:
-                logger.error(f"Критическая ошибка при отображении главного меню: {e2}")
+            await callback_query.message.delete()
+        except:
+            pass
+        await callback_query.answer()
     else:
         user_id = message.from_user.id
         user_data = get_user_data(user_id)
