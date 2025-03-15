@@ -118,13 +118,26 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
     
     # Если нет записей за эту дату
     if stats["entries"] == 0:
-        stats_text = (
-            f"📊 <b>Сводка питания за {stats['date']}</b>\n\n"
-            f"В этот день нет записей о питании.\n\n"
-            f"💡 Чтобы добавить запись:\n"
-            f"• Отправьте фото еды\n"
-            f"• Или воспользуйтесь калькулятором калорий"
-        )
+        # Определяем, является ли эта дата прошлым или будущим днем
+        today = user_data.get_current_date()
+        
+        if current_date > today:
+            # Будущая дата
+            stats_text = (
+                f"📊 <b>Сводка питания за {stats['date']}</b>\n\n"
+                f"Эта дата еще не наступила.\n\n"
+                f"📅 Воспользуйтесь навигацией для просмотра прошлых дней, либо вернитесь к сегодняшнему дню."
+            )
+        else:
+            # Прошлая дата или сегодня
+            stats_text = (
+                f"📊 <b>Сводка питания за {stats['date']}</b>\n\n"
+                f"В этот день нет записей о питании.\n\n"
+                f"💡 Чтобы добавить запись:\n"
+                f"• Отправьте фото еды\n"
+                f"• Или воспользуйтесь калькулятором калорий"
+            )
+            
         # Используем обычную клавиатуру навигации по датам
         keyboard = get_stats_keyboard(current_date)
     else:
@@ -190,7 +203,19 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
     # Отправляем или редактируем сообщение
     try:
         if edit_message and callback_query:
-            await callback_query.message.edit_text(stats_text, parse_mode="HTML", reply_markup=keyboard)
+            try:
+                # Пытаемся отредактировать сообщение
+                await callback_query.message.edit_text(stats_text, parse_mode="HTML", reply_markup=keyboard)
+            except Exception as edit_err:
+                # Проверяем тип ошибки
+                error_text = str(edit_err)
+                if "message is not modified" in error_text:
+                    # Сообщение не изменилось, просто отправляем ответ
+                    await callback_query.answer("Данные актуальны")
+                else:
+                    # Если другая ошибка, отправляем новое сообщение
+                    logger.error(f"Ошибка при редактировании сообщения: {edit_err}")
+                    await callback_query.message.answer(stats_text, parse_mode="HTML", reply_markup=keyboard)
             await callback_query.answer()
         else:
             await msg_obj.answer(stats_text, parse_mode="HTML", reply_markup=keyboard)
@@ -249,7 +274,19 @@ async def show_meals(message: Message = None, callback_query: CallbackQuery = No
     # Отправляем или редактируем сообщение в зависимости от контекста
     try:
         if edit_message and callback_query:
-            await callback_query.message.edit_text(meals_text, parse_mode="HTML", reply_markup=keyboard)
+            try:
+                # Пытаемся отредактировать сообщение
+                await callback_query.message.edit_text(meals_text, parse_mode="HTML", reply_markup=keyboard)
+            except Exception as edit_err:
+                # Проверяем тип ошибки
+                error_text = str(edit_err)
+                if "message is not modified" in error_text:
+                    # Сообщение не изменилось, просто отправляем ответ
+                    await callback_query.answer("Данные актуальны")
+                else:
+                    # Если другая ошибка, отправляем новое сообщение
+                    logger.error(f"Ошибка при редактировании сообщения с приемами пищи: {edit_err}")
+                    await callback_query.message.answer(meals_text, parse_mode="HTML", reply_markup=keyboard)
             await callback_query.answer()
         else:
             await msg_obj.answer(meals_text, parse_mode="HTML", reply_markup=keyboard)
@@ -739,11 +776,23 @@ async def show_all_nutrients(callback_query: CallbackQuery):
     keyboard = get_all_nutrients_keyboard(stats)
     
     # Отправляем или редактируем сообщение
-    await callback_query.message.edit_text(
-        nutrients_text, 
-        parse_mode="HTML", 
-        reply_markup=keyboard
-    )
+    try:
+        await callback_query.message.edit_text(
+            nutrients_text, 
+            parse_mode="HTML", 
+            reply_markup=keyboard
+        )
+    except Exception as edit_err:
+        # Проверяем тип ошибки
+        error_text = str(edit_err)
+        if "message is not modified" in error_text:
+            # Сообщение не изменилось, просто отправляем ответ
+            await callback_query.answer("Данные актуальны")
+        else:
+            # Если другая ошибка, отправляем новое сообщение
+            logger.error(f"Ошибка при редактировании сообщения с нутриентами: {edit_err}")
+            await callback_query.message.answer(nutrients_text, parse_mode="HTML", reply_markup=keyboard)
+    
     await callback_query.answer()
 
 # Обработка нажатия на кнопку обновления статистики
@@ -840,11 +889,23 @@ async def process_meal_info(callback_query: CallbackQuery):
     meal_text += f"\n\n⏱ Время: {datetime.fromisoformat(meal['timestamp']).strftime('%H:%M:%S')}"
     
     # Отправляем детали с клавиатурой для удаления
-    await callback_query.message.edit_text(
-        meal_text,
-        parse_mode="HTML",
-        reply_markup=get_meal_detail_keyboard(meal_index)
-    )
+    try:
+        await callback_query.message.edit_text(
+            meal_text,
+            parse_mode="HTML",
+            reply_markup=get_meal_detail_keyboard(meal_index)
+        )
+    except Exception as edit_err:
+        # Проверяем тип ошибки
+        error_text = str(edit_err)
+        if "message is not modified" in error_text:
+            # Сообщение не изменилось, просто отправляем ответ
+            await callback_query.answer("Данные актуальны")
+        else:
+            # Если другая ошибка, отправляем новое сообщение
+            logger.error(f"Ошибка при просмотре деталей еды: {edit_err}")
+            await callback_query.message.answer(meal_text, parse_mode="HTML", reply_markup=get_meal_detail_keyboard(meal_index))
+    
     await callback_query.answer()
 
 # Обработка навигации по страницам списка приемов пищи
