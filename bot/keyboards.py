@@ -43,31 +43,55 @@ def get_stats_keyboard(current_date=None):
     today = date.today()
     current_str = current_date.strftime("%d.%m.%Y")
     
-    # Кнопки навигации
+    # Вычисляем границы для навигации: можно листать до 7 дней назад
+    min_date = today - timedelta(days=7)
+    
+    # Основные кнопки навигации (предыдущий день, дата, следующий день)
     nav_row = []
     
-    # Добавляем кнопку предыдущего дня
-    prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
-    nav_row.append(InlineKeyboardButton(text="◀️ Пред.", callback_data=f"date:{prev_date}"))
+    # Кнопка на 3 дня назад (если текущая дата > мин. даты + 3)
+    if current_date > min_date + timedelta(days=3):
+        date_minus_3 = (current_date - timedelta(days=3)).strftime("%Y-%m-%d")
+        nav_row.append(InlineKeyboardButton(text="⏪ -3 дня", callback_data=f"date:{date_minus_3}"))
     
-    # Добавляем текущую дату
+    # Добавляем кнопку предыдущего дня, только если не достигли минимальной даты
+    if current_date > min_date:
+        prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
+        nav_row.append(InlineKeyboardButton(text="◀️ Вчера", callback_data=f"date:{prev_date}"))
+    
+    # Текущая дата
     nav_row.append(InlineKeyboardButton(text=f"{current_str}", callback_data="refresh_stats"))
     
-    # Добавляем кнопку следующего дня
-    next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
+    # Добавляем кнопку следующего дня, только если сегодня не достигнут
     if current_date < today:
-        nav_row.append(InlineKeyboardButton(text="След. ▶️", callback_data=f"date:{next_date}"))
+        next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
+        nav_row.append(InlineKeyboardButton(text="Завтра ▶️", callback_data=f"date:{next_date}"))
+    
+    # Кнопка на 3 дня вперед (если текущая дата < сегодня - 3)
+    if current_date < today - timedelta(days=3):
+        date_plus_3 = (current_date + timedelta(days=3)).strftime("%Y-%m-%d")
+        nav_row.append(InlineKeyboardButton(text="+3 дня ⏩", callback_data=f"date:{date_plus_3}"))
     
     kb = [nav_row]
     
-    # Добавляем кнопки управления
-    buttons_row = [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_stats")]
-    kb.append(buttons_row)
+    # Добавляем кнопки навигации к якорным датам
+    date_nav_row = []
     
-    # Если текущий день - не сегодня, добавляем кнопку "Сегодня"
+    # Добавляем кнопку "Неделя назад", если текущая дата не минимальная
+    if current_date != min_date and current_date != today:
+        week_ago_str = min_date.strftime("%Y-%m-%d")
+        date_nav_row.append(InlineKeyboardButton(text="📅 Неделя назад", callback_data=f"date:{week_ago_str}"))
+    
+    # Добавляем кнопку "Сегодня", если текущая дата не сегодня
     if current_date != today:
         today_str = today.strftime("%Y-%m-%d")
-        kb.append([InlineKeyboardButton(text="📅 Перейти к сегодня", callback_data=f"date:{today_str}")])
+        date_nav_row.append(InlineKeyboardButton(text="📅 Сегодня", callback_data=f"date:{today_str}"))
+    
+    if date_nav_row:
+        kb.append(date_nav_row)
+    
+    # Добавляем кнопку обновления
+    kb.append([InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_stats")])
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
     return keyboard
