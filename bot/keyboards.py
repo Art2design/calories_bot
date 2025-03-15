@@ -91,10 +91,8 @@ def get_meals_keyboard(meals, page=0, page_size=5):
     if nav_buttons:
         kb.append(nav_buttons)
     
-    # Добавляем кнопки управления
-    control_buttons = [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_meals")]
-    control_buttons.append(InlineKeyboardButton(text="🏠 Меню", callback_data="back_to_main"))
-    kb.append(control_buttons)
+    # Добавляем кнопку обновления
+    kb.append([InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_meals")])
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
     return keyboard
@@ -105,9 +103,6 @@ def get_meal_detail_keyboard(meal_index):
         [
             InlineKeyboardButton(text="❌ Удалить", callback_data=f"delete_meal:{meal_index}"),
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_meals")
-        ],
-        [
-            InlineKeyboardButton(text="🏠 Главное меню", callback_data="back_to_main")
         ]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
@@ -123,7 +118,7 @@ def get_settings_keyboard():
             InlineKeyboardButton(text="🕒 Изменить часовой пояс", callback_data="set_timezone")
         ],
         [
-            InlineKeyboardButton(text="🔙 Назад в главное меню", callback_data="back_to_main")
+            InlineKeyboardButton(text="🔙 Назад", callback_data="show_stats")  # Перенаправляем к статистике
         ]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
