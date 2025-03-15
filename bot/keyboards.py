@@ -115,6 +115,12 @@ def get_settings_keyboard():
             InlineKeyboardButton(text="🎯 Установить лимит калорий", callback_data="set_calorie_limit")
         ],
         [
+            InlineKeyboardButton(text="📊 Установить КБЖУ", callback_data="set_kbju")
+        ],
+        [
+            InlineKeyboardButton(text="⚖️ Указать вес и % жира", callback_data="set_body_metrics")
+        ],
+        [
             InlineKeyboardButton(text="🕒 Изменить часовой пояс", callback_data="set_timezone")
         ],
         [
@@ -166,3 +172,39 @@ def get_timezone_keyboard(current_timezone="МСК", page=0):
     return keyboard
 
 # Функция get_main_menu_inline_keyboard удалена по запросу пользователя
+
+def get_kbju_format_keyboard():
+    """Return keyboard with format selection for KBJU limits"""
+    kb = [
+        [
+            InlineKeyboardButton(text="✍️ Ввести вручную", callback_data="kbju_manual")
+        ],
+        [
+            InlineKeyboardButton(text="🧮 Рассчитать по весу", callback_data="kbju_calculate")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_settings")
+        ]
+    ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
+    return keyboard
+
+def get_improved_stats_keyboard(stats, width=8):
+    """Return inline keyboard for improved stats display with all nutrients"""
+    
+    # Кнопки для перехода к подробной статистике по нутриентам
+    kb = [
+        [
+            InlineKeyboardButton(text="🔍 Подробнее о БЖУ", callback_data="detailed_macros"),
+            InlineKeyboardButton(text="📊 Все нутриенты", callback_data="all_nutrients")
+        ]
+    ]
+    
+    # Навигация по датам (используем существующую функцию)
+    date_keyboard = get_stats_keyboard(stats.get("date"))
+    
+    # Объединяем клавиатуры
+    for row in date_keyboard.inline_keyboard:
+        kb.append(row)
+    
+    return InlineKeyboardMarkup(inline_keyboard=kb)

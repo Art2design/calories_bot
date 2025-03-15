@@ -32,6 +32,13 @@ class CalorieTrackerStates(StatesGroup):
     waiting_for_confirmation = State()
     waiting_for_calorie_limit = State()
     waiting_for_timezone = State()
+    waiting_for_kbju_format = State()
+    waiting_for_protein_limit = State()
+    waiting_for_fat_limit = State()
+    waiting_for_carbs_limit = State()
+    waiting_for_fiber_limit = State()
+    waiting_for_weight = State()
+    waiting_for_body_fat = State()
 
 # Функция get_user_data уже импортирована из db_storage, используем её напрямую
 # Другое имя для совместимости не требуется, так как имена совпадают
@@ -112,27 +119,36 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
             f"Отправьте фото еды, чтобы добавить новую запись."
         )
     else:
-        # Создаем прогресс-бары
+        # Создаем прогресс-бары для всех нутриентов
         calorie_bar = user_data.generate_calorie_progress_bar(stats["calorie_percentage"])
         
-        # Получаем целевые значения БЖУ и создаем прогресс-бары
-        protein_bar = user_data.generate_nutrient_progress_bar(stats["protein"], 75, "protein")
-        fat_bar = user_data.generate_nutrient_progress_bar(stats["fat"], 60, "fat")
-        carbs_bar = user_data.generate_nutrient_progress_bar(stats["carbs"], 250, "carbs")
+        # Получаем целевые значения БЖУ из данных пользователя
+        protein_target = stats.get('protein_limit', 75)
+        fat_target = stats.get('fat_limit', 60)
+        carbs_target = stats.get('carbs_limit', 250)
+        fiber_target = stats.get('fiber_limit', 30)
+        
+        # Создаем прогресс-бары с текущими/целевыми значениями
+        protein_bar = user_data.generate_nutrient_progress_bar(stats["protein"], protein_target, "protein")
+        fat_bar = user_data.generate_nutrient_progress_bar(stats["fat"], fat_target, "fat")
+        carbs_bar = user_data.generate_nutrient_progress_bar(stats["carbs"], carbs_target, "carbs")
+        fiber_bar = user_data.generate_nutrient_progress_bar(stats.get("fiber", 0), fiber_target, "fiber")
         
         # Создаем текст сообщения с прогресс-барами
         limit_text = f"Лимит калорий: {stats['calorie_limit']} ккал\n" if stats['calorie_limit'] else ""
         
+        # Основные нутриенты всегда отображаются
         stats_text = (
             f"📊 <b>Сводка питания за {stats['date']}</b>\n\n"
             f"Приёмов пищи: {stats['entries']}\n"
             f"{limit_text}"
-            f"Калории: {stats['calories']} ккал\n"
+            f"Калории: {stats['calories']}/{stats.get('calorie_limit', '—')} ккал\n"
             f"Прогресс: {calorie_bar}\n\n"
             f"<b>Пищевая ценность:</b>\n"
-            f"🥩 Белки: {stats['protein']}г\n{protein_bar}\n"
-            f"🧈 Жиры: {stats['fat']}г\n{fat_bar}\n"
-            f"🍚 Углеводы: {stats['carbs']}г\n{carbs_bar}\n"
+            f"🥩 Белки: {stats['protein']}/{protein_target}г\n{protein_bar}\n"
+            f"🧈 Жиры: {stats['fat']}/{fat_target}г\n{fat_bar}\n"
+            f"🍚 Углеводы: {stats['carbs']}/{carbs_target}г\n{carbs_bar}\n"
+            f"🌱 Клетчатка: {stats.get('fiber', 0)}/{fiber_target}г\n{fiber_bar}\n"
         )
     
     # Создаем клавиатуру для навигации по датам
@@ -424,16 +440,45 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
     # Get updated stats
     today_stats = user_data.get_today_stats()
     
-    # Create progress bars
+    # Получаем целевые значения БЖУ из данных пользователя
+    protein_target = today_stats.get('protein_limit', 75)
+    fat_target = today_stats.get('fat_limit', 60)
+    carbs_target = today_stats.get('carbs_limit', 250)
+    fiber_target = today_stats.get('fiber_limit', 30)
+    
+    # Create progress bars with current/target values
     calorie_bar = user_data.generate_calorie_progress_bar(today_stats["calorie_percentage"])
-    protein_bar = user_data.generate_nutrient_progress_bar(today_stats["protein"], 75, "protein")
-    fat_bar = user_data.generate_nutrient_progress_bar(today_stats["fat"], 60, "fat")
-    carbs_bar = user_data.generate_nutrient_progress_bar(today_stats["carbs"], 250, "carbs")
+    protein_bar = user_data.generate_nutrient_progress_bar(today_stats["protein"], protein_target, "protein")
+    fat_bar = user_data.generate_nutrient_progress_bar(today_stats["fat"], fat_target, "fat")
+    carbs_bar = user_data.generate_nutrient_progress_bar(today_stats["carbs"], carbs_target, "carbs")
+    fiber_bar = user_data.generate_nutrient_progress_bar(today_stats.get("fiber", 0), fiber_target, "fiber")
     
     # Prepare confirmation message
     calorie_limit = today_stats["calorie_limit"]
     limit_text = f"Лимит калорий: {calorie_limit} ккал\n" if calorie_limit else ""
     
+    # Определяем дополнительные нутриенты (если они есть)
+    fiber = analysis.get('fiber', 0)
+    sugar = analysis.get('sugar', 0)
+    sodium = analysis.get('sodium', 0)
+    cholesterol = analysis.get('cholesterol', 0)
+    
+    # Добавляем эти нутриенты в запись
+    if fiber > 0 or sugar > 0 or sodium > 0 or cholesterol > 0:
+        if entry:
+            # Обновляем запись с новыми нутриентами
+            try:
+                user_data.update_food_entry(
+                    entry_id=entry['id'],
+                    fiber=fiber,
+                    sugar=sugar,
+                    sodium=sodium,
+                    cholesterol=cholesterol
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при обновлении дополнительных нутриентов: {e}")
+    
+    # Создаем текст подтверждения
     confirm_text = (
         f"✅ <b>Запись добавлена в дневник!</b>\n\n"
         f"<b>{analysis.get('food_name', 'Неизвестное блюдо')}</b>\n"
@@ -441,12 +486,13 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
         f"📊 <b>Сводка за сегодня:</b>\n"
         f"Приёмов пищи: {today_stats['entries']}\n"
         f"{limit_text}"
-        f"Калории: {today_stats['calories']} ккал\n"
+        f"Калории: {today_stats['calories']}/{today_stats.get('calorie_limit', '—')} ккал\n"
         f"{calorie_bar}\n\n"
         f"<b>Пищевая ценность:</b>\n"
-        f"🥩 Белки: {today_stats['protein']}г\n{protein_bar}\n"
-        f"🧈 Жиры: {today_stats['fat']}г\n{fat_bar}\n"
-        f"🍚 Углеводы: {today_stats['carbs']}г\n{carbs_bar}\n"
+        f"🥩 Белки: {today_stats['protein']}/{protein_target}г\n{protein_bar}\n"
+        f"🧈 Жиры: {today_stats['fat']}/{fat_target}г\n{fat_bar}\n"
+        f"🍚 Углеводы: {today_stats['carbs']}/{carbs_target}г\n{carbs_bar}\n"
+        f"🌱 Клетчатка: {today_stats.get('fiber', 0)}/{fiber_target}г\n{fiber_bar}\n"
     )
     
     # Всегда отправляем новое сообщение вместо редактирования
