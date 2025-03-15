@@ -37,7 +37,7 @@ AVAILABLE_TIMEZONES = {
 
 class DBUserData:
     """Класс для работы с данными пользователя в базе данных"""
-    
+
     def __init__(self, user_id: int):
         """Инициализация данных пользователя, загрузка из базы или создание новой записи"""
         self.user_id = user_id
@@ -50,7 +50,7 @@ class DBUserData:
         self.body_fat_percentage = None
         self.timezone_code = "МСК"
         self.load_from_db()
-    
+
     def load_from_db(self):
         """Загрузить данные пользователя из базы"""
         db = get_db()
@@ -75,7 +75,7 @@ class DBUserData:
             db.rollback()
         finally:
             db.close()
-    
+
     @property
     def timezone(self) -> tzinfo:
         """Получить объект часового пояса пользователя"""
@@ -89,31 +89,31 @@ class DBUserData:
                 self.timezone_code = "МСК"
                 # Сохраняем исправленный код в базу
                 self.set_timezone("МСК")
-            
+
             # Возвращаем объект часового пояса
             return pytz.timezone(tz_name)
         except Exception as e:
             logger.error(f"Ошибка при получении часового пояса: {e}")
             # Если произошла ошибка, возвращаем часовой пояс Москвы
             return pytz.timezone("Europe/Moscow")
-    
+
     def get_current_datetime(self) -> datetime:
         """Получить текущее время в часовом поясе пользователя"""
         # Используем timezone как свойство
         tz = self.timezone
         return datetime.now(tz)
-    
+
     def get_current_date(self) -> date:
         """Получить текущую дату в часовом поясе пользователя"""
         return self.get_current_datetime().date()
-    
+
     def set_timezone(self, timezone_code: str) -> bool:
         """Установить часовой пояс пользователя"""
         if timezone_code not in AVAILABLE_TIMEZONES:
             return False
-        
+
         self.timezone_code = timezone_code
-        
+
         db = get_db()
         try:
             user = db.query(User).filter(User.id == self.user_id).first()
@@ -128,7 +128,7 @@ class DBUserData:
             return False
         finally:
             db.close()
-    
+
     def get_timezone_name(self) -> str:
         """Получить название часового пояса"""
         # Проверяем, есть ли код в словаре или используем Москву по умолчанию
@@ -145,7 +145,7 @@ class DBUserData:
         except Exception as e:
             logger.error(f"Ошибка при получении названия часового пояса: {e}")
             return "Europe/Moscow"
-    
+
     def get_timezone_offset(self) -> str:
         """Получить смещение часового пояса относительно UTC"""
         tz = self.timezone
@@ -155,24 +155,24 @@ class DBUserData:
             return "UTC+0"
         hours = offset.total_seconds() // 3600
         minutes = (offset.total_seconds() % 3600) // 60
-        
+
         if hours == 0 and minutes == 0:
             return "UTC+0"
-        
+
         sign = "+" if hours >= 0 else "-"
         hours = abs(hours)
         minutes = abs(minutes)
-        
+
         if minutes == 0:
             return f"UTC{sign}{int(hours)}"
         else:
             return f"UTC{sign}{int(hours)}:{int(minutes):02d}"
-    
+
     def add_food_entry(self, food_name: str, calories: float, protein: float, fat: float, carbs: float, 
                       fiber: float = 0, sugar: float = 0, sodium: float = 0, cholesterol: float = 0) -> Dict[str, Any]:
         """
         Добавить новую запись о еде и вернуть её
-        
+
         Args:
             food_name: Название еды
             calories: Калории
@@ -183,12 +183,12 @@ class DBUserData:
             sugar: Сахар (г)
             sodium: Натрий (мг)
             cholesterol: Холестерин (мг)
-            
+
         Returns:
             Словарь с данными о созданной записи
         """
         current_time = self.get_current_datetime()
-        
+
         db = get_db()
         try:
             # Создаем новую запись о приеме пищи
@@ -205,11 +205,11 @@ class DBUserData:
                 cholesterol=cholesterol,
                 timestamp=current_time
             )
-            
+
             db.add(entry)
             db.commit()
             db.refresh(entry)
-            
+
             return entry.to_dict()
         except SQLAlchemyError as e:
             logger.error(f"Ошибка при добавлении записи о еде: {e}")
@@ -229,19 +229,19 @@ class DBUserData:
             }
         finally:
             db.close()
-    
+
     def update_food_entry(self, entry_id: int, fiber: float = None, sugar: float = None, 
                           sodium: float = None, cholesterol: float = None) -> bool:
         """
         Обновить существующую запись о еде дополнительными нутриентами
-        
+
         Args:
             entry_id: ID записи
             fiber: Клетчатка (г)
             sugar: Сахар (г)
             sodium: Натрий (мг)
             cholesterol: Холестерин (мг)
-            
+
         Returns:
             bool: Успешно ли обновлена запись
         """
@@ -252,10 +252,10 @@ class DBUserData:
                 FoodEntry.id == entry_id,
                 FoodEntry.user_id == self.user_id
             ).first()
-            
+
             if not entry:
                 return False
-            
+
             # Обновляем только переданные параметры
             if fiber is not None:
                 entry.fiber = fiber
@@ -265,7 +265,7 @@ class DBUserData:
                 entry.sodium = sodium
             if cholesterol is not None:
                 entry.cholesterol = cholesterol
-            
+
             db.commit()
             return True
         except SQLAlchemyError as e:
@@ -274,14 +274,14 @@ class DBUserData:
             return False
         finally:
             db.close()
-            
+
     def set_calorie_limit(self, limit: int) -> None:
         """Установить дневной лимит калорий"""
         if limit <= 0:
             return
-            
+
         self.calorie_limit = limit
-        
+
         db = get_db()
         try:
             user = db.query(User).filter(User.id == self.user_id).first()
@@ -293,34 +293,34 @@ class DBUserData:
             db.rollback()
         finally:
             db.close()
-            
+
     def set_macros_limits(self, protein: float, fat: float, carbs: float, fiber: float = None) -> bool:
         """
         Установить дневные лимиты макронутриентов
-        
+
         Args:
             protein: Лимит белков (г)
             fat: Лимит жиров (г)
             carbs: Лимит углеводов (г)
             fiber: Лимит клетчатки (г)
-            
+
         Returns:
             bool: Успешно ли установлены лимиты
         """
         if protein <= 0 or fat <= 0 or carbs <= 0:
             return False
-            
+
         self.protein_limit = protein
         self.fat_limit = fat
         self.carbs_limit = carbs
-        
+
         if fiber is not None and fiber > 0:
             self.fiber_limit = fiber
-            
+
         # Рассчитываем калории на основе КБЖУ
         calories = protein * 4 + fat * 9 + carbs * 4
         self.calorie_limit = int(calories)
-        
+
         db = get_db()
         try:
             user = db.query(User).filter(User.id == self.user_id).first()
@@ -329,10 +329,10 @@ class DBUserData:
                 user.fat_limit = fat
                 user.carbs_limit = carbs
                 user.calorie_limit = int(calories)
-                
+
                 if fiber is not None and fiber > 0:
                     user.fiber_limit = fiber
-                    
+
                 db.commit()
                 return True
             return False
@@ -342,38 +342,38 @@ class DBUserData:
             return False
         finally:
             db.close()
-            
+
     def set_user_body_metrics(self, weight: float, body_fat: float) -> bool:
         """
         Установить метрики тела пользователя и рассчитать рекомендуемые значения КБЖУ
-        
+
         Args:
             weight: Вес в кг
             body_fat: Процент жира в теле (0-100)
-            
+
         Returns:
             bool: Успешно ли установлены метрики
         """
         if weight <= 0 or body_fat < 0 or body_fat > 100:
             return False
-            
+
         self.user_weight = weight
         self.body_fat_percentage = body_fat
-        
+
         # Рассчитываем лимиты макронутриентов на основе веса и % жира
         # Простой алгоритм:
         # Расчет безжировой массы тела (LBM)
         lean_body_mass = weight * (1 - body_fat / 100)
-        
+
         # Расчет целевых значений
         protein = round(lean_body_mass * 2, 1)  # 2г белка на кг LBM
         fat = round(weight * 1, 1)  # 1г жира на кг веса
         carbs = round(weight * 3, 1)  # 3г углеводов на кг веса
         fiber = round(weight * 0.3, 1)  # 0.3г клетчатки на кг веса
-        
+
         # Устанавливаем рассчитанные лимиты
         self.set_macros_limits(protein, fat, carbs, fiber)
-        
+
         db = get_db()
         try:
             user = db.query(User).filter(User.id == self.user_id).first()
@@ -389,7 +389,7 @@ class DBUserData:
             return False
         finally:
             db.close()
-    
+
     def get_stats_by_date(self, target_date: date) -> Dict[str, Any]:
         """Получить статистику питания за конкретную дату"""
         try:
@@ -413,13 +413,13 @@ class DBUserData:
                 hour=0, minute=0, second=0, microsecond=0,
                 tzinfo=pytz.UTC
             )
-        
+
         target_end = target_start + timedelta(days=1, seconds=-1)
-        
+
         # Конвертируем в UTC для SQL-запроса
         target_start_utc = target_start.astimezone(pytz.UTC)
         target_end_utc = target_end.astimezone(pytz.UTC)
-        
+
         db = get_db()
         try:
             # Получаем суммарные показатели за день
@@ -438,7 +438,7 @@ class DBUserData:
                 FoodEntry.timestamp >= target_start_utc,
                 FoodEntry.timestamp <= target_end_utc
             ).first()
-            
+
             entries = stats[0] or 0
             calories = stats[1] or 0
             protein = stats[2] or 0
@@ -448,28 +448,28 @@ class DBUserData:
             sugar = stats[6] or 0
             sodium = stats[7] or 0
             cholesterol = stats[8] or 0
-            
+
             # Вычисляем проценты от лимитов
             calorie_percentage = 0
             if self.calorie_limit and self.calorie_limit > 0:
                 calorie_percentage = min(100, (calories / self.calorie_limit) * 100)
-            
+
             protein_percentage = 0
             if self.protein_limit and self.protein_limit > 0:
                 protein_percentage = min(100, (protein / self.protein_limit) * 100)
-                
+
             fat_percentage = 0
             if self.fat_limit and self.fat_limit > 0:
                 fat_percentage = min(100, (fat / self.fat_limit) * 100)
-                
+
             carbs_percentage = 0
             if self.carbs_limit and self.carbs_limit > 0:
                 carbs_percentage = min(100, (carbs / self.carbs_limit) * 100)
-                
+
             fiber_percentage = 0
             if self.fiber_limit and self.fiber_limit > 0:
                 fiber_percentage = min(100, (fiber / self.fiber_limit) * 100)
-            
+
             return {
                 "date": target_date.strftime("%d.%m.%Y"),
                 "entries": entries,
@@ -481,14 +481,14 @@ class DBUserData:
                 "sugar": round(sugar, 1),
                 "sodium": round(sodium, 1),
                 "cholesterol": round(cholesterol, 1),
-                
+
                 # Лимиты
                 "calorie_limit": self.calorie_limit,
                 "protein_limit": self.protein_limit,
                 "fat_limit": self.fat_limit,
                 "carbs_limit": self.carbs_limit,
                 "fiber_limit": self.fiber_limit,
-                
+
                 # Проценты выполнения
                 "calorie_percentage": round(calorie_percentage, 1),
                 "protein_percentage": round(protein_percentage, 1),
@@ -509,14 +509,14 @@ class DBUserData:
                 "sugar": 0,
                 "sodium": 0,
                 "cholesterol": 0,
-                
+
                 # Лимиты
                 "calorie_limit": self.calorie_limit,
                 "protein_limit": self.protein_limit,
                 "fat_limit": self.fat_limit,
                 "carbs_limit": self.carbs_limit,
                 "fiber_limit": self.fiber_limit,
-                
+
                 # Проценты выполнения
                 "calorie_percentage": 0,
                 "protein_percentage": 0,
@@ -526,12 +526,12 @@ class DBUserData:
             }
         finally:
             db.close()
-    
+
     def get_today_stats(self) -> Dict[str, Any]:
         """Получить статистику питания за сегодня"""
         current_date = self.get_current_date()
         return self.get_stats_by_date(current_date)
-    
+
     def get_entries_by_date(self, target_date: date) -> List[Dict[str, Any]]:
         """Получить приемы пищи за конкретную дату"""
         try:
@@ -555,13 +555,13 @@ class DBUserData:
                 hour=0, minute=0, second=0, microsecond=0,
                 tzinfo=pytz.UTC
             )
-            
+
         target_end = target_start + timedelta(days=1, seconds=-1)
-        
+
         # Конвертируем в UTC для SQL-запроса
         target_start_utc = target_start.astimezone(pytz.UTC)
         target_end_utc = target_end.astimezone(pytz.UTC)
-        
+
         db = get_db()
         try:
             entries = db.query(FoodEntry).filter(
@@ -569,19 +569,19 @@ class DBUserData:
                 FoodEntry.timestamp >= target_start_utc,
                 FoodEntry.timestamp <= target_end_utc
             ).order_by(FoodEntry.timestamp.desc()).all()
-            
+
             return [entry.to_dict() for entry in entries]
         except SQLAlchemyError as e:
             logger.error(f"Ошибка при получении записей о еде: {e}")
             return []
         finally:
             db.close()
-    
+
     def get_today_entries(self) -> List[Dict[str, Any]]:
         """Получить приемы пищи за сегодня"""
         current_date = self.get_current_date()
         return self.get_entries_by_date(current_date)
-    
+
     def delete_entry(self, entry_id: int) -> bool:
         """Удалить запись о приеме пищи по ID"""
         db = get_db()
@@ -590,7 +590,7 @@ class DBUserData:
                 FoodEntry.id == entry_id, 
                 FoodEntry.user_id == self.user_id
             ).first()
-            
+
             if entry:
                 db.delete(entry)
                 db.commit()
@@ -602,66 +602,69 @@ class DBUserData:
             return False
         finally:
             db.close()
-    
+
     def delete_entry_by_index(self, index: int) -> bool:
         """Удалить запись о приеме пищи по индексу из текущих записей"""
         # Получаем записи за сегодня
         current_date = self.get_current_date()
         entries = self.get_entries_by_date(current_date)
-        
+
         # Проверяем корректность индекса
         if index < 0 or index >= len(entries):
             return False
-        
+
         # Получаем ID записи для удаления
         entry_id = entries[index]["id"]
         return self.delete_entry(entry_id)
-    
+
     def get_last_week_dates(self) -> List[date]:
         """Получить список дат за последнюю неделю, включая сегодня"""
         today = self.get_current_date()
         return [today - timedelta(days=i) for i in range(7)]
-    
+
     def generate_calorie_progress_bar(self, percentage: float, width: int = 10) -> str:
         """Создать текстовый прогресс-бар для потребления калорий"""
         filled_chars = min(int(percentage / 100 * width), width)
         empty_chars = width - filled_chars
-        
+
         if percentage < 85:
             bar_char = "🟩"  # Зеленый для нормального употребления
         elif percentage < 100:
             bar_char = "🟨"  # Желтый для приближения к лимиту
         else:
             bar_char = "🟥"  # Красный для превышения лимита
-            
+
         return f"{bar_char * filled_chars}{'⬜' * empty_chars} {int(percentage)}%"
-    
+
     def generate_nutrient_progress_bar(self, value: float, target: float, nutrient_type: str, width: int = 10) -> str:
         """
-        Создать текстовый прогресс-бар для потребления нутриентов (белки, жиры, углеводы)
-        
+        Generate a text progress bar for nutrient consumption (protein, fat, carbs)
+
         Args:
-            value: Текущее количество нутриента
-            target: Целевое количество нутриента
-            nutrient_type: Тип нутриента ('protein', 'fat', 'carbs')
-            width: Ширина прогресс-бара
-            
+            value: Current amount of nutrient consumed
+            target: Target amount of nutrient
+            nutrient_type: Type of nutrient ('protein', 'fat', 'carbs')
+            width: Width of the progress bar
+
         Returns:
-            Отформатированная строка прогресс-бара с процентами
+            Formatted progress bar string with percentage
         """
-        if target <= 0:
-            # Если цель не установлена, используем стандартные значения
+        # Handle None or zero target values
+        if not target or target <= 0:
+            # If target not set, use standard values
             if nutrient_type == "protein":
-                target = 75  # 75г белка - стандартная рекомендация
+                target = 75  # 75g protein standard
             elif nutrient_type == "fat":
-                target = 60  # 60г жиров - стандартная рекомендация
+                target = 60  # 60g fat standard
             elif nutrient_type == "carbs":
-                target = 250  # 250г углеводов - стандартная рекомендация
-        
+                target = 250  # 250g carbs standard
+            elif nutrient_type == "fiber":
+                target = 30  # 30g fiber standard
+
         percentage = min(100, int(value / target * 100)) if target > 0 else 0
         filled_chars = min(int(percentage / 100 * width), width)
         empty_chars = width - filled_chars
-        
+
         # Выбираем эмодзи в зависимости от типа нутриента
         if nutrient_type == "protein":
             bar_char = "🔵"  # Синий для белков
@@ -671,7 +674,7 @@ class DBUserData:
             bar_char = "🟠"  # Оранжевый для углеводов
         else:
             bar_char = "⬛"  # Чёрный для неизвестного типа
-            
+
         return f"{bar_char * filled_chars}{'⬜' * empty_chars} {int(percentage)}%"
 
 # Кэш данных пользователей для оптимизации
