@@ -46,11 +46,6 @@ def get_stats_keyboard(current_date=None):
     # Кнопки навигации
     nav_row = []
     
-    # Добавляем кнопку на 7 дней назад если возможно
-    if current_date > today - timedelta(days=30):
-        week_back = (current_date - timedelta(days=7)).strftime("%Y-%m-%d")
-        nav_row.append(InlineKeyboardButton(text="⏪ -7 дней", callback_data=f"date:{week_back}"))
-    
     # Добавляем кнопку предыдущего дня
     prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
     nav_row.append(InlineKeyboardButton(text="◀️ Пред.", callback_data=f"date:{prev_date}"))
@@ -58,15 +53,10 @@ def get_stats_keyboard(current_date=None):
     # Добавляем текущую дату
     nav_row.append(InlineKeyboardButton(text=f"{current_str}", callback_data="refresh_stats"))
     
-    # Если текущая дата не сегодня и не в будущем, добавляем кнопки следующих дней
+    # Добавляем кнопку следующего дня
+    next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
     if current_date < today:
-        next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
         nav_row.append(InlineKeyboardButton(text="След. ▶️", callback_data=f"date:{next_date}"))
-        
-        # Добавляем кнопку на 7 дней вперед если это возможно
-        if current_date < today - timedelta(days=7):
-            week_forward = (current_date + timedelta(days=7)).strftime("%Y-%m-%d")
-            nav_row.append(InlineKeyboardButton(text="⏩ +7 дней", callback_data=f"date:{week_forward}"))
     
     kb = [nav_row]
     
