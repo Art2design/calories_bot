@@ -980,10 +980,20 @@ async def process_delete_meal(callback_query: CallbackQuery):
     
     if success:
         # Сообщаем об удалении и показываем меню
-        await callback_query.message.edit_text(
-            f"✅ Прием пищи «{meal_name}» успешно удален.\n\nОбновленный список приемов пищи:",
-            parse_mode="HTML"
-        )
+        try:
+            await callback_query.message.edit_text(
+                f"✅ Прием пищи «{meal_name}» успешно удален.\n\nОбновленный список приемов пищи:",
+                parse_mode="HTML"
+            )
+        except Exception as edit_err:
+            # Проверяем тип ошибки
+            error_text = str(edit_err)
+            if "message is not modified" in error_text:
+                # Обрабатываем ошибку одинакового сообщения
+                await callback_query.answer("Данные актуальны")
+            else:
+                # Если другая ошибка, логируем и продолжаем
+                logger.error(f"Ошибка при обновлении сообщения после удаления: {edit_err}")
         
         # Возвращаем пользователя к списку приемов пищи с редактированием текущего сообщения
         await show_meals(callback_query=callback_query, edit_message=True)
@@ -1071,8 +1081,21 @@ async def process_timezone_page(callback_query: CallbackQuery, state: FSMContext
     keyboard = get_timezone_keyboard(current_timezone, page)
     
     # Обновляем сообщение с новой клавиатурой
-    await callback_query.message.edit_reply_markup(reply_markup=keyboard)
-    await callback_query.answer()
+    try:
+        await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+    except Exception as edit_err:
+        # Проверяем тип ошибки
+        error_text = str(edit_err)
+        if "message is not modified" in error_text:
+            # Обрабатываем ошибку одинаковой клавиатуры
+            pass  # Ничего не делаем, просто игнорируем ошибку
+        else:
+            # Если другая ошибка, логируем и уведомляем пользователя
+            logger.error(f"Ошибка при обновлении клавиатуры часовых поясов: {edit_err}")
+            await callback_query.answer("Ошибка при обновлении страницы")
+            return
+    
+    await callback_query.answer("Страница обновлена")
 
 # Функция для установки выбранного часового пояса
 async def set_selected_timezone(callback_query: CallbackQuery, state: FSMContext):
