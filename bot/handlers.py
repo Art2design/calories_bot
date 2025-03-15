@@ -18,8 +18,7 @@ from bot.keyboards import (
     get_meals_keyboard,
     get_meal_detail_keyboard,
     get_settings_keyboard,
-    get_timezone_keyboard,
-    get_main_menu_inline_keyboard
+    get_timezone_keyboard
 )
 from bot.db_storage import DBUserData, get_user_data
 from bot.openai_integration import analyze_food_image
@@ -60,13 +59,9 @@ async def cmd_start(message: Message, state: FSMContext):
         f"Используйте меню ниже или просто отправьте фото еды, чтобы начать!"
     )
     
-    # Отправляем основную клавиатуру и inline-клавиатуру главного меню
+    # Отправляем основную клавиатуру
     await message.answer(welcome_text, 
                          reply_markup=get_main_keyboard(), 
-                         parse_mode="HTML")
-    
-    await message.answer("🏠 <b>Главное меню</b>\n\nВыберите действие:", 
-                         reply_markup=get_main_menu_inline_keyboard(), 
                          parse_mode="HTML")
 
 async def cmd_help(message: Message):
@@ -87,7 +82,6 @@ async def cmd_help(message: Message):
     )
     
     await message.answer(help_text, parse_mode="HTML")
-    await message.answer("Выберите действие:", reply_markup=get_main_menu_inline_keyboard())
 
 # Функции для отображения сводки питания
 async def show_stats(message: Message = None, callback_query: CallbackQuery = None, 
@@ -458,8 +452,7 @@ async def process_confirmation(callback_query: CallbackQuery, state: FSMContext)
     # Всегда отправляем новое сообщение вместо редактирования
     await callback_query.message.answer(
         f"{confirm_text}\n\nЧто хотите сделать дальше?",
-        parse_mode="HTML",
-        reply_markup=get_main_menu_inline_keyboard()
+        parse_mode="HTML"
     )
     
     # Удаляем старое сообщение
@@ -479,8 +472,7 @@ async def process_cancel(callback_query: CallbackQuery, state: FSMContext):
     # Всегда отправляем новое сообщение вместо редактирования
     await callback_query.message.answer(
         "❌ Операция отменена.\n\nЧто хотите сделать дальше?",
-        parse_mode="HTML",
-        reply_markup=get_main_menu_inline_keyboard()
+        parse_mode="HTML"
     )
     
     # Удаляем старое сообщение
@@ -850,7 +842,6 @@ def register_handlers(dp: Dispatcher):
     router.message.register(cmd_help, Command("help"))
     
     # Main menu button handlers (ReplyKeyboard)
-    router.message.register(show_main_menu, F.text == "🏠 Главное меню")
     router.message.register(show_stats, F.text == "📊 Сводка питания")
     router.message.register(show_meals, F.text == "🍽️ Приемы пищи")
     router.message.register(show_settings, F.text == "⚙️ Настройки")
