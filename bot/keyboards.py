@@ -203,7 +203,6 @@ def get_improved_stats_keyboard(stats, width=8):
     # Кнопки для перехода к подробной статистике по нутриентам
     kb = [
         [
-            InlineKeyboardButton(text="🔍 Подробнее о БЖУ", callback_data="detailed_macros"),
             InlineKeyboardButton(text="📊 Все нутриенты", callback_data="all_nutrients")
         ]
     ]
