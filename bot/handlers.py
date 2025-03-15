@@ -867,8 +867,20 @@ async def set_selected_timezone(callback_query: CallbackQuery, state: FSMContext
     success = user_data.set_timezone(timezone_code)
     
     if success:
-        # Сообщаем об успешной установке
-        await callback_query.answer(f"Часовой пояс установлен: {timezone_code}")
+        # Отправляем новое сообщение
+        await callback_query.message.answer(
+            f"✅ Часовой пояс успешно установлен: <b>{timezone_code}</b>",
+            parse_mode="HTML"
+        )
+        
+        # Удаляем старое сообщение
+        try:
+            await callback_query.message.delete()
+        except Exception as e:
+            logger.warning(f"Не удалось удалить сообщение: {e}")
+        
+        # Сообщаем об успешной установке во всплывающем уведомлении
+        await callback_query.answer(f"Часовой пояс установлен")
         
         # Возвращаемся в настройки
         await show_settings(callback_query=callback_query)
