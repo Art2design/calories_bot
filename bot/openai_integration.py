@@ -42,6 +42,10 @@ async def analyze_food_image(base64_image: str) -> dict:
         3. Примерное содержание белков (г)
         4. Примерное содержание жиров (г)
         5. Примерное содержание углеводов (г)
+        6. Примерное содержание клетчатки (г)
+        7. Примерное содержание сахара (г)
+        8. Примерное содержание натрия (мг)
+        9. Примерное содержание холестерина (мг)
         
         Ответь в формате JSON:
         {
@@ -49,10 +53,14 @@ async def analyze_food_image(base64_image: str) -> dict:
             "calories": число,
             "protein": число,
             "fat": число,
-            "carbs": число
+            "carbs": число,
+            "fiber": число,
+            "sugar": число,
+            "sodium": число,
+            "cholesterol": число
         }
         
-        Не включай в ответ ничего, кроме JSON.
+        Не включай в ответ ничего, кроме JSON. Если невозможно определить какой-то из нутриентов, используй значение 0.
         """
         
         response = await client.chat.completions.create(
@@ -83,7 +91,7 @@ async def analyze_food_image(base64_image: str) -> dict:
         result = json.loads(result_text)
         
         # Ensure all required fields are present
-        required_fields = ["food_name", "calories", "protein", "fat", "carbs"]
+        required_fields = ["food_name", "calories", "protein", "fat", "carbs", "fiber", "sugar", "sodium", "cholesterol"]
         for field in required_fields:
             if field not in result:
                 result[field] = 0 if field != "food_name" else "Неизвестное блюдо"

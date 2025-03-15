@@ -375,16 +375,36 @@ async def process_photo(message: Message, state: FSMContext):
         protein = analysis_result.get('protein', 0)
         fat = analysis_result.get('fat', 0)
         carbs = analysis_result.get('carbs', 0)
+        fiber = analysis_result.get('fiber', 0)
+        sugar = analysis_result.get('sugar', 0)
+        sodium = analysis_result.get('sodium', 0)
+        cholesterol = analysis_result.get('cholesterol', 0)
         
+        # Основные нутриенты всегда отображаются
         result_message = (
             f"🍽 <b>{food_name}</b>\n\n"
             f"📊 <b>Пищевая ценность:</b>\n"
             f"🔥 Калории: {calories} ккал\n"
             f"🥩 Белки: {protein}г\n"
             f"🧈 Жиры: {fat}г\n"
-            f"🍚 Углеводы: {carbs}г\n\n"
-            f"Все верно? Если да, нажмите «Подтвердить» для сохранения в дневник питания."
+            f"🍚 Углеводы: {carbs}г"
         )
+        
+        # Добавляем дополнительные нутриенты, если они есть
+        additional_nutrients = []
+        if fiber > 0:
+            additional_nutrients.append(f"🌱 Клетчатка: {fiber}г")
+        if sugar > 0:
+            additional_nutrients.append(f"🍯 Сахар: {sugar}г")
+        if sodium > 0:
+            additional_nutrients.append(f"🧂 Натрий: {sodium}мг")
+        if cholesterol > 0:
+            additional_nutrients.append(f"🥚 Холестерин: {cholesterol}мг")
+            
+        if additional_nutrients:
+            result_message += "\n\n<b>Дополнительные нутриенты:</b>\n" + "\n".join(additional_nutrients)
+            
+        result_message += f"\n\nВсе верно? Если да, нажмите «Подтвердить» для сохранения в дневник питания."
         
         # Delete processing message
         try:
