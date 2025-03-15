@@ -39,16 +39,20 @@ def get_stats_keyboard(current_date=None):
         except ValueError:
             current_date = date.today()
     
-    prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
+    # Получаем сегодняшнюю дату для сравнения
     today = date.today()
     current_str = current_date.strftime("%d.%m.%Y")
     
     # Кнопки навигации
     nav_row = []
+    # Добавляем кнопку предыдущего дня
+    prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
     nav_row.append(InlineKeyboardButton(text="◀️ Пред. день", callback_data=f"date:{prev_date}"))
-    nav_row.append(InlineKeyboardButton(text=f"{current_str}", callback_data="current_date"))
     
-    # Только если текущий день не сегодня и не в будущем, добавляем кнопку следующего дня
+    # Добавляем текущую дату
+    nav_row.append(InlineKeyboardButton(text=f"{current_str}", callback_data="refresh_stats"))
+    
+    # Если текущая дата не сегодня и не в будущем, добавляем кнопку следующего дня
     if current_date < today:
         next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
         nav_row.append(InlineKeyboardButton(text="След. день ▶️", callback_data=f"date:{next_date}"))
