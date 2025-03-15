@@ -636,7 +636,7 @@ class DBUserData:
 
         return f"{bar_char * filled_chars}{'⬜' * empty_chars} {int(percentage)}%"
 
-    def generate_nutrient_progress_bar(self, value: float, target: float, nutrient_type: str, width: int = 10) -> str:
+    def generate_nutrient_progress_bar(self, value: float, target: float | None, nutrient_type: str, width: int = 10) -> str:
         """
         Generate a text progress bar for nutrient consumption (protein, fat, carbs)
 
@@ -649,17 +649,14 @@ class DBUserData:
         Returns:
             Formatted progress bar string with percentage
         """
-        # Handle None or zero target values
-        if not target or target <= 0:
-            # If target not set, use standard values
+        if target is None or target <= 0:
+            # Если цель не установлена, используем стандартные значения
             if nutrient_type == "protein":
-                target = 75  # 75g protein standard
+                target = 75  # 75г белка - стандартная рекомендация
             elif nutrient_type == "fat":
-                target = 60  # 60g fat standard
+                target = 60  # 60г жиров - стандартная рекомендация
             elif nutrient_type == "carbs":
-                target = 250  # 250g carbs standard
-            elif nutrient_type == "fiber":
-                target = 30  # 30g fiber standard
+                target = 250  # 250г углеводов - стандартная рекомендация
 
         percentage = min(100, int(value / target * 100)) if target > 0 else 0
         filled_chars = min(int(percentage / 100 * width), width)
