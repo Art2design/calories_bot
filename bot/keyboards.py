@@ -122,9 +122,6 @@ def get_settings_keyboard():
         ],
         [
             InlineKeyboardButton(text="🕒 Изменить часовой пояс", callback_data="set_timezone")
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Назад", callback_data="show_stats")  # Перенаправляем к статистике
         ]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
