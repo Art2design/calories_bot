@@ -254,9 +254,34 @@ async def show_settings(message: Message = None, callback_query: CallbackQuery =
     tz_code = user_data.timezone_code
     tz_offset = user_data.get_timezone_offset()
     
+    # Метрики тела и КБЖУ лимиты
+    protein_limit = user_data.protein_limit
+    fat_limit = user_data.fat_limit
+    carbs_limit = user_data.carbs_limit
+    fiber_limit = user_data.fiber_limit
+    user_weight = user_data.user_weight
+    body_fat = user_data.body_fat_percentage
+    
+    # Создаем текст сообщения с настройками
+    body_metrics_text = ""
+    if user_weight and body_fat:
+        body_metrics_text = f"⚖️ Вес: {user_weight} кг, жир: {body_fat}%\n"
+    
+    kbju_text = ""
+    if protein_limit and fat_limit and carbs_limit:
+        kbju_text = (
+            f"🥩 Белки: {protein_limit}г\n"
+            f"🧈 Жиры: {fat_limit}г\n"
+            f"🍚 Углеводы: {carbs_limit}г\n"
+        )
+        if fiber_limit:
+            kbju_text += f"🌱 Клетчатка: {fiber_limit}г\n"
+    
     settings_text = (
         f"⚙️ <b>Настройки</b>\n\n"
         f"🎯 Текущий лимит калорий: {current_limit if current_limit else 'не установлен'}\n"
+        f"{kbju_text if kbju_text else ''}"
+        f"{body_metrics_text if body_metrics_text else ''}"
         f"🕒 Часовой пояс: {tz_code} ({tz_offset})\n\n"
         f"Выберите действие:"
     )
@@ -638,15 +663,33 @@ async def process_meal_info(callback_query: CallbackQuery):
     meal = meals[meal_index]
     
     # Форматируем детали
+    # Проверяем наличие дополнительных нутриентов
+    additional_nutrients = []
+    if meal.get('fiber') and meal['fiber'] > 0:
+        additional_nutrients.append(f"🌱 Клетчатка: {meal['fiber']}г")
+    if meal.get('sugar') and meal['sugar'] > 0:
+        additional_nutrients.append(f"🍯 Сахар: {meal['sugar']}г")
+    if meal.get('sodium') and meal['sodium'] > 0:
+        additional_nutrients.append(f"🧂 Натрий: {meal['sodium']}мг")
+    if meal.get('cholesterol') and meal['cholesterol'] > 0:
+        additional_nutrients.append(f"🥚 Холестерин: {meal['cholesterol']}мг")
+    
+    # Базовые нутриенты всегда отображаются
     meal_text = (
         f"🍽 <b>{meal['food_name']}</b>\n\n"
         f"📊 <b>Пищевая ценность:</b>\n"
         f"🔥 Калории: {meal['calories']} ккал\n"
         f"🥩 Белки: {meal['protein']}г\n"
         f"🧈 Жиры: {meal['fat']}г\n"
-        f"🍚 Углеводы: {meal['carbs']}г\n\n"
-        f"⏱ Время: {datetime.fromisoformat(meal['timestamp']).strftime('%H:%M:%S')}"
+        f"🍚 Углеводы: {meal['carbs']}г"
     )
+    
+    # Добавляем дополнительные нутриенты, если они есть
+    if additional_nutrients:
+        meal_text += "\n\n<b>Дополнительные нутриенты:</b>\n" + "\n".join(additional_nutrients)
+    
+    # Добавляем информацию о времени
+    meal_text += f"\n\n⏱ Время: {datetime.fromisoformat(meal['timestamp']).strftime('%H:%M:%S')}"
     
     # Отправляем детали с клавиатурой для удаления
     await callback_query.message.edit_text(
@@ -1258,6 +1301,12 @@ def register_handlers(dp: Dispatcher):
     
     # State handlers
     router.message.register(process_calorie_limit, StateFilter(CalorieTrackerStates.waiting_for_calorie_limit))
+    router.message.register(process_protein_limit, StateFilter(CalorieTrackerStates.waiting_for_protein_limit))
+    router.message.register(process_fat_limit, StateFilter(CalorieTrackerStates.waiting_for_fat_limit))
+    router.message.register(process_carbs_limit, StateFilter(CalorieTrackerStates.waiting_for_carbs_limit))
+    router.message.register(process_fiber_limit, StateFilter(CalorieTrackerStates.waiting_for_fiber_limit))
+    router.message.register(process_weight, StateFilter(CalorieTrackerStates.waiting_for_weight))
+    router.message.register(process_body_fat, StateFilter(CalorieTrackerStates.waiting_for_body_fat))
     
     # Callback query handlers - main menu
     router.callback_query.register(show_stats, F.data == "show_stats")
@@ -1290,6 +1339,13 @@ def register_handlers(dp: Dispatcher):
     router.callback_query.register(process_timezone_page, F.data.startswith("timezone_page:"))
     router.callback_query.register(set_selected_timezone, F.data.startswith("timezone:"))
     router.callback_query.register(back_to_settings, F.data == "back_to_settings")
+    
+    # Callback query handlers - KBJU format and settings
+    router.callback_query.register(show_kbju_format_selection, F.data == "set_kbju")
+    router.callback_query.register(set_manual_kbju, F.data == "kbju_manual")
+    router.callback_query.register(set_body_metrics, F.data == "kbju_calculate")
+    router.callback_query.register(set_body_metrics, F.data == "set_body_metrics")
+    router.callback_query.register(set_calculated_calories, F.data.startswith("set_calc_calories:"))
     
     # Include the router in the dispatcher
     dp.include_router(router)
