@@ -732,7 +732,8 @@ async def show_all_nutrients(callback_query: CallbackQuery):
         f"🔴 Холестерин: {stats.get('cholesterol', 0)}/{cholesterol_target}мг\n{cholesterol_bar}\n"
     )
     
-    # Используем клавиатуру для всех нутриентов
+    # Импортируем клавиатуру для всех нутриентов
+    from bot.keyboards import get_all_nutrients_keyboard
     keyboard = get_all_nutrients_keyboard(stats)
     
     # Отправляем или редактируем сообщение

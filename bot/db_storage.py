@@ -692,7 +692,7 @@ class DBUserData:
 
         return f"{bar_char * filled_chars}{'⬜' * empty_chars} {int(percentage)}%"
 
-    def generate_nutrient_progress_bar(self, value: float, target: float | None, nutrient_type: str, width: int = 10) -> str:
+    def generate_nutrient_progress_bar(self, value: float, target: Optional[float], nutrient_type: str, width: int = 10) -> str:
         """
         Generate a text progress bar for nutrient consumption
 
