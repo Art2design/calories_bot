@@ -320,7 +320,13 @@ async def show_settings(message: Message = None, callback_query: CallbackQuery =
     
     try:
         if callback_query:
-            await callback_query.message.edit_text(settings_text, parse_mode="HTML", reply_markup=keyboard)
+            # Всегда отправляем новое сообщение вместо редактирования
+            await callback_query.message.answer(settings_text, parse_mode="HTML", reply_markup=keyboard)
+            # Удаляем старое сообщение
+            try:
+                await callback_query.message.delete()
+            except Exception as delete_err:
+                logger.warning(f"Не удалось удалить сообщение: {delete_err}")
             await callback_query.answer()
         else:
             await msg_obj.answer(settings_text, parse_mode="HTML", reply_markup=keyboard)

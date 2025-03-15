@@ -226,16 +226,27 @@ class DBUserData:
     
     def get_stats_by_date(self, target_date: date) -> Dict[str, Any]:
         """Получить статистику питания за конкретную дату"""
-        # Формируем диапазон времени для выбранной даты (от 00:00 до 23:59:59)
-        target_start = datetime.combine(target_date, datetime.min.time())
-        # Создаем осведомленную о часовом поясе дату
-        tz = self.timezone
         try:
-            # Пробуем сначала использовать localize метод (pytz)
-            target_start = tz.localize(target_start)
-        except AttributeError:
-            # Если нет метода localize, используем стандартный replace (для zoneinfo)
-            target_start = target_start.replace(tzinfo=tz)
+            # Более безопасный метод создания даты с часовым поясом
+            tz = self.timezone
+            # Создаем осведомленный о часовом поясе datetime в полночь целевой даты
+            target_start = datetime(
+                year=target_date.year,
+                month=target_date.month,
+                day=target_date.day,
+                hour=0, minute=0, second=0, microsecond=0,
+                tzinfo=pytz.UTC
+            ).astimezone(tz)
+        except Exception as e:
+            logger.error(f"Ошибка при создании даты с часовым поясом: {e}")
+            # Создаем дату в UTC если произошла ошибка
+            target_start = datetime(
+                year=target_date.year,
+                month=target_date.month,
+                day=target_date.day,
+                hour=0, minute=0, second=0, microsecond=0,
+                tzinfo=pytz.UTC
+            )
         
         target_end = target_start + timedelta(days=1, seconds=-1)
         
@@ -301,17 +312,28 @@ class DBUserData:
     
     def get_entries_by_date(self, target_date: date) -> List[Dict[str, Any]]:
         """Получить приемы пищи за конкретную дату"""
-        # Формируем диапазон времени для выбранной даты (от 00:00 до 23:59:59)
-        target_start = datetime.combine(target_date, datetime.min.time())
-        # Создаем осведомленную о часовом поясе дату
-        tz = self.timezone
         try:
-            # Пробуем сначала использовать localize метод (pytz)
-            target_start = tz.localize(target_start)
-        except AttributeError:
-            # Если нет метода localize, используем стандартный replace (для zoneinfo)
-            target_start = target_start.replace(tzinfo=tz)
-        
+            # Более безопасный метод создания даты с часовым поясом
+            tz = self.timezone
+            # Создаем осведомленный о часовом поясе datetime в полночь целевой даты
+            target_start = datetime(
+                year=target_date.year,
+                month=target_date.month,
+                day=target_date.day,
+                hour=0, minute=0, second=0, microsecond=0,
+                tzinfo=pytz.UTC
+            ).astimezone(tz)
+        except Exception as e:
+            logger.error(f"Ошибка при создании даты с часовым поясом: {e}")
+            # Создаем дату в UTC если произошла ошибка
+            target_start = datetime(
+                year=target_date.year,
+                month=target_date.month,
+                day=target_date.day,
+                hour=0, minute=0, second=0, microsecond=0,
+                tzinfo=pytz.UTC
+            )
+            
         target_end = target_start + timedelta(days=1, seconds=-1)
         
         # Конвертируем в UTC для SQL-запроса
