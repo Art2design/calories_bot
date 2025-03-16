@@ -11,19 +11,23 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Create Flask app
-from aiohttp.web import Application
-from aioflask import Flask
+from flask import Flask, request
 from bot.bot import bot_app as telegram_bot
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key")
 
 @app.route(f"/webhook/{os.environ.get('TELEGRAM_BOT_TOKEN')}", methods=['POST'])
-async def webhook():
+def webhook():
     """Handle incoming webhook updates"""
-    dispatcher = await telegram_bot.main()
-    update = await request.get_json()
-    await dispatcher.feed_webhook_update(update)
+    update = request.get_json()
+    # Use asyncio to handle async bot operations
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    dispatcher = loop.run_until_complete(telegram_bot.main())
+    loop.run_until_complete(dispatcher.feed_webhook_update(update))
+    loop.close()
     return '', 200
 
 def kill_bot_process():

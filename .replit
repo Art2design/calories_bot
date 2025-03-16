@@ -5,10 +5,10 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "gunicorn -k aiohttp.worker.GunicornWebWorker -b 0.0.0.0:5000 app:app"]
+run = ["sh", "-c", "gunicorn -b 0.0.0.0:5000 app:app"]
 
 [workflows]
-runButton = "Project"
+runButton = "Flask Production"
 
 [[workflows.workflow]]
 name = "Project"
@@ -33,6 +33,15 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Flask Production"
+author = 40396170
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn -b 0.0.0.0:5000 app:app"
 
 [[ports]]
 localPort = 5000
