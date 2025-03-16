@@ -6,7 +6,7 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "gce"
 run = ["sh", "-c", "python run_bot.py"]
-ignorePorts = false
+ignorePorts = true
 
 # [workflows]
 # runButton = "Start Bot"
