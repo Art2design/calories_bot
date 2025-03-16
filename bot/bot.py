@@ -26,20 +26,17 @@ class BotApp:
     
     async def main(self):
         """Main function to start the bot"""
-        self.logger.info("Starting bot...")
+        self.logger.info("Starting bot with webhook...")
         
-        # Удаляем меню команд у бота
         await self.bot.delete_my_commands()
         
-        # Start polling (aiogram 3.x way)
-        try:
-            # In aiogram 3.x, polling is started differently
-            await self.dp.start_polling(self.bot)
-        except Exception as e:
-            self.logger.error(f"Error starting bot: {e}")
-        finally:
-            # In aiogram 3.x, session closing is handled automatically
-            self.logger.info("Bot stopped")
+        webhook_url = os.environ.get("WEBHOOK_URL")
+        if not webhook_url:
+            self.logger.error("WEBHOOK_URL not found in environment")
+            return
+            
+        await self.bot.set_webhook(webhook_url)
+        return self.dp
 
 bot_app = BotApp()
 
