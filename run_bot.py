@@ -20,7 +20,6 @@ signal.signal(signal.SIGINT, handle_exit)
 
 if __name__ == "__main__":
     try:
-        # Run the bot
         asyncio.run(bot_app.main())
     except KeyboardInterrupt:
         logger.info("Bot stopped by keyboard interrupt")
