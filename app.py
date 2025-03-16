@@ -16,11 +16,10 @@ from flask import Flask, request
 from bot.bot import bot_app as telegram_bot
 
 def get_webhook_url():
-    repl_owner = os.environ.get('REPL_OWNER')
-    repl_slug = os.environ.get('REPL_SLUG')
-    if not (repl_owner and repl_slug):
+    repl_id = os.environ.get('REPL_ID')
+    if not repl_id:
         return None
-    return f"https://{repl_slug}.{repl_owner}.repl.co/webhook/{os.environ.get('TELEGRAM_BOT_TOKEN')}"
+    return f"https://{repl_id}.id.repl.co/webhook/{os.environ.get('TELEGRAM_BOT_TOKEN')}"
 
 # Initialize global variables
 bot_process = None
