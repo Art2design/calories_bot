@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "gunicorn -b 0.0.0.0:5000 app:app"]
+run = ["sh", "-c", "gunicorn -b 0.0.0.0:5000 --preload app:app"]
 
 [workflows]
 runButton = "Flask Production"
