@@ -18,7 +18,19 @@ from bot.bot import bot_app as telegram_bot
 bot_process = None
 
 app = Flask(__name__)
+
+# Set webhook URL in environment
+webhook_url = get_webhook_url()
+if webhook_url:
+    os.environ['WEBHOOK_URL'] = webhook_url
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key")
+
+def get_webhook_url():
+    repl_owner = os.environ.get('REPL_OWNER')
+    repl_slug = os.environ.get('REPL_SLUG')
+    if not (repl_owner and repl_slug):
+        return None
+    return f"https://{repl_slug}.{repl_owner}.repl.co/webhook/{os.environ.get('TELEGRAM_BOT_TOKEN')}"
 
 @app.route(f"/webhook/{os.environ.get('TELEGRAM_BOT_TOKEN')}", methods=['POST'])
 def webhook():
