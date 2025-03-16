@@ -99,6 +99,7 @@ async def cmd_help(message: Message):
 async def show_stats(message: Message = None, callback_query: CallbackQuery = None, 
                     current_date: Optional[date] = None, edit_message: bool = False):
     """Show nutrition stats for a specific date"""
+    #await callback_query.answer(current_date.strftime("%d.%m.%Y"))
     # Определяем либо из сообщения, либо из callback_query
     if callback_query:
         user_id = callback_query.from_user.id
@@ -113,6 +114,8 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
         current_date = user_data.get_current_date()
     else:
         user_data = get_user_data(user_id)
+
+    #raise Exception(f'{current_date}')
     
     stats = user_data.get_stats_by_date(current_date)
     
@@ -189,7 +192,7 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
             f"Приёмов пищи: {stats['entries']}\n"
             f"{limit_text}"
             f"Калории: {stats['calories']}/{stats.get('calorie_limit', '—')} ккал\n"
-            f"Прогресс: {calorie_bar}\n\n"
+            f"{calorie_bar}\n\n"
             f"<b>Основные нутриенты:</b>\n"
             f"🥩 Белки: {stats['protein']}/{protein_target}г\n{protein_bar}\n"
             f"🧈 Жиры: {stats['fat']}/{fat_target}г\n{fat_bar}\n"
@@ -211,7 +214,7 @@ async def show_stats(message: Message = None, callback_query: CallbackQuery = No
                 error_text = str(edit_err)
                 if "message is not modified" in error_text:
                     # Сообщение не изменилось, просто отправляем ответ
-                    await callback_query.answer("Данные актуальны")
+                    await callback_query.answer(f"Данные актуальны {current_date}")
                 else:
                     # Если другая ошибка, отправляем новое сообщение
                     logger.error(f"Ошибка при редактировании сообщения: {edit_err}")
@@ -403,36 +406,19 @@ async def process_photo(message: Message, state: FSMContext):
         # Analyze image with OpenAI
         analysis_result = await analyze_food_image(base64_image)
         
-        # Mock data for testing if OpenAI quota is exhausted
+        # Проверяем результат анализа
         if not analysis_result:
-            # Если квота OpenAI исчерпана, используем тестовые данные
-            logger.warning("OpenAI quota exceeded or API error. Using mock data for testing.")
-            
-            # Определяем случайные значения для тестирования
-            import random
-            
-            food_options = [
-                {"name": "Овсянка с фруктами", "cal": 310, "protein": 8, "fat": 5, "carbs": 55},
-                {"name": "Куриная грудка с овощами", "cal": 250, "protein": 30, "fat": 8, "carbs": 12},
-                {"name": "Греческий салат", "cal": 220, "protein": 5, "fat": 17, "carbs": 10},
-                {"name": "Борщ", "cal": 180, "protein": 7, "fat": 6, "carbs": 22},
-                {"name": "Паста с соусом", "cal": 450, "protein": 12, "fat": 15, "carbs": 65}
-            ]
-            
-            # Выбираем случайное тестовое блюдо
-            mock_food = random.choice(food_options)
-            
-            # Создаем тестовые данные
-            analysis_result = {
-                "food_name": mock_food["name"],
-                "calories": mock_food["cal"],
-                "protein": mock_food["protein"],
-                "fat": mock_food["fat"],
-                "carbs": mock_food["carbs"]
-            }
-            
-            # Уведомляем о тестовом режиме в логах
-            logger.info(f"Using mock data: {analysis_result}")
+            # Если анализ не удался, сообщаем пользователю
+            logger.error("OpenAI API error or quota exceeded. Failed to analyze food image.")
+            await processing_message.delete()
+            await message.answer(
+                "❌ К сожалению, не удалось проанализировать фото еды. Это может быть связано с проблемами соединения "
+                "с OpenAI API или исчерпанием квоты запросов.\n\n"
+                "Пожалуйста, попробуйте повторить позже или обратитесь к администратору."
+            )
+            # Очищаем состояние и выходим
+            await state.clear()
+            return
         
         # Store analysis in state
         await state.update_data(analysis=analysis_result)
@@ -471,6 +457,10 @@ async def process_photo(message: Message, state: FSMContext):
             
         if additional_nutrients:
             result_message += "\n\n<b>Дополнительные нутриенты:</b>\n" + "\n".join(additional_nutrients)
+            #
+        #
+        #
+        result_message += f"\n\n{analysis_result.get('caption', '')}"
             
         result_message += f"\n\nВсе верно? Если да, нажмите «Подтвердить» для сохранения в дневник питания."
         
@@ -707,6 +697,7 @@ async def process_date_callback(callback_query: CallbackQuery):
         return
     
     date_str = data_parts[1]
+    logger.debug("Получена дата: %s", date_str)
     target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
     
     # Показываем статистику за выбранную дату

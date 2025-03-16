@@ -8,7 +8,7 @@ from openai import AsyncOpenAI
 logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY2")
 if not OPENAI_API_KEY:
     logger.warning("OPENAI_API_KEY not found in environment variables")
 
@@ -38,7 +38,7 @@ async def analyze_food_image(base64_image: str) -> dict:
         prompt = """
         Проанализируй это изображение еды и определи:
         1. Название блюда
-        2. Приблизительное количество калорий (ккал)
+        2. Приблизительное количество калорий (ккал) на фотографии (не в 100 граммах)
         3. Примерное содержание белков (г)
         4. Примерное содержание жиров (г)
         5. Примерное содержание углеводов (г)
@@ -57,14 +57,15 @@ async def analyze_food_image(base64_image: str) -> dict:
             "fiber": число,
             "sugar": число,
             "sodium": число,
-            "cholesterol": число
+            "cholesterol": число,
+            "caption": "описание блюда"
         }
         
         Не включай в ответ ничего, кроме JSON. Если невозможно определить какой-то из нутриентов, используй значение 0.
         """
         
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "user",
@@ -81,7 +82,9 @@ async def analyze_food_image(base64_image: str) -> dict:
                 }
             ],
             response_format={"type": "json_object"},
-            max_tokens=800
+            max_tokens=500,
+            temperature=0.2,
+            top_p=0.1          
         )
         
         result_text = response.choices[0].message.content

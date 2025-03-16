@@ -34,10 +34,10 @@ def get_stats_keyboard(current_date=None):
         current_date = date.today()
     elif isinstance(current_date, str):
         # Если дата передана как строка, преобразуем её в объект date
-        try:
-            current_date = datetime.strptime(current_date, "%Y-%m-%d").date()
-        except ValueError:
-            current_date = date.today()
+        #try:
+        current_date = datetime.strptime(current_date, "%d.%m.%Y").date()
+        #except ValueError:
+        #    current_date = date.today()
     
     # Получаем сегодняшнюю дату для сравнения
     today = date.today()
@@ -52,7 +52,7 @@ def get_stats_keyboard(current_date=None):
     # Добавляем кнопку предыдущего дня, только если не достигли минимальной даты
     if current_date > min_date:
         prev_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
-        nav_row.append(InlineKeyboardButton(text="◀️ Вчера", callback_data=f"date:{prev_date}"))
+        nav_row.append(InlineKeyboardButton(text=f"◀️ {prev_date}", callback_data=f"date:{prev_date}"))
     
     # Текущая дата
     nav_row.append(InlineKeyboardButton(text=f"{current_str}", callback_data="refresh_stats"))
@@ -60,7 +60,7 @@ def get_stats_keyboard(current_date=None):
     # Добавляем кнопку следующего дня, только если сегодня не достигнут
     if current_date < today:
         next_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
-        nav_row.append(InlineKeyboardButton(text="Завтра ▶️", callback_data=f"date:{next_date}"))
+        nav_row.append(InlineKeyboardButton(text=f"{next_date} ▶️", callback_data=f"date:{next_date}"))
     
     kb = [nav_row]
     
@@ -76,7 +76,7 @@ def get_stats_keyboard(current_date=None):
         kb.append(date_nav_row)
     
     # Добавляем кнопку обновления
-    kb.append([InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_stats")])
+    #kb.append([InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_stats")])
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb)
     return keyboard
@@ -217,7 +217,8 @@ def get_improved_stats_keyboard(stats, width=8):
     ]
     
     # Навигация по датам (используем существующую функцию)
-    date_keyboard = get_stats_keyboard(stats.get("date"))
+    #raise Exception(stats.get("date"))
+    date_keyboard = get_stats_keyboard(current_date=stats.get("date"))
     
     # Объединяем клавиатуры
     for row in date_keyboard.inline_keyboard:
@@ -228,13 +229,13 @@ def get_improved_stats_keyboard(stats, width=8):
 def get_all_nutrients_keyboard(stats):
     """Return keyboard with detailed information about all nutrients"""
     kb = [
-        [
-            InlineKeyboardButton(text="🔙 Вернуться к статистике", callback_data="back_to_stats")
-        ]
+        #[
+        #    InlineKeyboardButton(text="🔙 Вернуться к статистике", callback_data="back_to_stats")
+        #]
     ]
     
     # Добавляем кнопки для навигации по датам
-    date_keyboard = get_stats_keyboard(stats.get("date"))
+    date_keyboard = get_stats_keyboard(current_date = stats.get("date"))
     for row in date_keyboard.inline_keyboard:
         kb.append(row)
     
