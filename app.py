@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 from flask import Flask, request
 from bot.bot import bot_app as telegram_bot
 
+# Initialize global variables
+bot_process = None
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key")
 
