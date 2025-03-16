@@ -53,6 +53,6 @@ ignorePorts = false
 # task = "shell.exec"
 # args = "python run_bot.py"
 
-[[ports]]
-localPort = 5000
-externalPort = 80
+# [[ports]]
+# localPort = 5000
+# externalPort = 80
