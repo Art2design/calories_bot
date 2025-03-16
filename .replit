@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "python run_bot.py"]
+run = ["sh", "-c", "gunicorn -k aiohttp.worker.GunicornWebWorker -b 0.0.0.0:5000 app:app"]
 
 [workflows]
 runButton = "Project"
