@@ -6,51 +6,52 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "gce"
 run = ["sh", "-c", "python run_bot.py"]
+ignorePorts = false
 
-[workflows]
-runButton = "Start Bot"
+# [workflows]
+# runButton = "Start Bot"
 
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
+# [[workflows.workflow]]
+# name = "Project"
+# mode = "parallel"
+# author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
+# [[workflows.workflow.tasks]]
+# task = "workflow.run"
+# args = "Start application"
 
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
+# [[workflows.workflow]]
+# name = "Start application"
+# author = "agent"
 
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
+# [workflows.workflow.metadata]
+# agentRequireRestartOnSave = false
 
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
+# [[workflows.workflow.tasks]]
+# task = "packager.installForAll"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
-waitForPort = 5000
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
+# waitForPort = 5000
 
-[[workflows.workflow]]
-name = "Flask Production"
-author = 40396170
-mode = "sequential"
+# [[workflows.workflow]]
+# name = "Flask Production"
+# author = 40396170
+# mode = "sequential"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "gunicorn -b 0.0.0.0:5000 app:app"
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = "gunicorn -b 0.0.0.0:5000 app:app"
 
-[[workflows.workflow]]
-name = "Start Bot"
-author = 40396170
-mode = "sequential"
+# [[workflows.workflow]]
+# name = "Start Bot"
+# author = 40396170
+# mode = "sequential"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python run_bot.py"
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = "python run_bot.py"
 
 [[ports]]
 localPort = 5000
