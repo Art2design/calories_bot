@@ -7,21 +7,8 @@ import sys
 from bot.bot import bot_app
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Log environment check
-logger.info("Starting Telegram bot...")
-logger.info("Environment variables check:")
-required_vars = [
-    "TELEGRAM_BOT_TOKEN", "OPENAI_API_KEY", "DATABASE_URL",
-    "PGDATABASE", "PGHOST", "PGPORT", "PGUSER", "PGPASSWORD"
-]
-for var in required_vars:
-    logger.info(f"{var} present: {bool(os.environ.get(var))}")
 
 # Handle termination signals
 def handle_exit(signum, frame):
@@ -33,6 +20,7 @@ signal.signal(signal.SIGINT, handle_exit)
 
 if __name__ == "__main__":
     try:
+        # Run the bot
         asyncio.run(bot_app.main())
     except KeyboardInterrupt:
         logger.info("Bot stopped by keyboard interrupt")
