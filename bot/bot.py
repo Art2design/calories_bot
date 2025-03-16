@@ -26,17 +26,25 @@ class BotApp:
     
     async def main(self):
         """Main function to start the bot"""
-        self.logger.info("Starting bot with webhook...")
-        
-        await self.bot.delete_my_commands()
-        
-        webhook_url = os.environ.get("WEBHOOK_URL")
-        if not webhook_url:
-            self.logger.error("WEBHOOK_URL not found in environment")
-            return
+        try:
+            self.logger.info("Starting bot with webhook...")
             
-        await self.bot.set_webhook(webhook_url)
-        return self.dp
+            await self.bot.delete_my_commands()
+            
+            webhook_url = os.environ.get("WEBHOOK_URL")
+            if not webhook_url:
+                self.logger.error("WEBHOOK_URL not found in environment")
+                return
+                
+            await self.bot.set_webhook(webhook_url)
+            return self.dp
+        except Exception as e:
+            self.logger.error(f"Error in main: {e}")
+            raise
+        finally:
+            # Ensure bot session is closed
+            if hasattr(self.bot, 'session') and not self.bot.session.closed:
+                await self.bot.session.close()
 
 bot_app = BotApp()
 
