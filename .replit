@@ -8,6 +8,10 @@ deploymentTarget = "gce"
 run = ["sh", "-c", "python run_bot.py"]
 ignorePorts = true
 
+[[ports]]
+localPort = 5000
+externalPort = 80
+
 # [workflows]
 # runButton = "Start Bot"
 
