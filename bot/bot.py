@@ -27,7 +27,10 @@ class BotApp:
         """Main function to start the bot"""
         try:
             self.logger.info("Starting bot in polling mode...")
-            await self.dp.start_polling(self.bot)
+            await self.dp.start_polling(self.bot, allowed_updates=["message", "callback_query"])
+        except Exception as e:
+            self.logger.error(f"Error in main: {e}")
+            raise
         finally:
             if hasattr(self.bot, 'session'):
                 await self.bot.session.close()
