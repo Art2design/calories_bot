@@ -6,6 +6,9 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, cre
 from sqlalchemy.orm import relationship, sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Получаем строку подключения к базе данных из переменной окружения
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
