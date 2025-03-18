@@ -71,7 +71,7 @@ async def analyze_food_image(base64_image: str) -> dict:
         """
         
         response = await client.chat.completions.create(
-            model="gpt-o1",
+            model="o1-preview",
             messages=[
                 {
                     "role": "user",
