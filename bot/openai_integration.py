@@ -88,7 +88,7 @@ async def analyze_food_image(base64_image: str) -> dict:
                 }
             ],
             response_format={"type": "json_object"},
-            max_tokens=700,
+            #max_tokens=700,
             temperature=0.2,
             top_p = 0.8,
             frequency_penalty = 0,
