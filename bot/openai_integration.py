@@ -72,7 +72,7 @@ async def analyze_food_image(base64_image: str) -> dict:
         """
         
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1",
             messages=[
                 {
                     "role": "user",
@@ -89,7 +89,7 @@ async def analyze_food_image(base64_image: str) -> dict:
                 }
             ],
             response_format={"type": "json_object"},
-            max_tokens=5000,
+            max_tokens=2000,
             temperature=0.01,
             top_p = 0.55,
             frequency_penalty = 0,
